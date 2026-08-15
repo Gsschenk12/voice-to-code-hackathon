@@ -1,4 +1,5 @@
 import type { CommandKind } from "@/types/meeting";
+import { TRIGGER_FOCUS_INSTRUCTION } from "@/lib/pipeline/trigger-focus";
 
 export type AssociatedIssueForPrompt = {
   number: number;
@@ -64,6 +65,8 @@ export function buildPrPlanPrompt(params: {
     "",
     "You are in plan mode. Explore the codebase and produce a concrete implementation plan.",
     "Do NOT edit files, commit, push, or open a pull request in this turn.",
+    TRIGGER_FOCUS_INSTRUCTION,
+    "Plan for the associated issue and the tagged current request — not earlier topics.",
     "",
     `Associated issue: #${params.issue.number} — ${params.issue.title}`,
     `Issue URL: ${params.issue.url}`,

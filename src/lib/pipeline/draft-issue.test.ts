@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { GITHUB_ISSUE_TITLE_MAX, parseAgentIssueDraft } from "./draft-issue";
+import { GITHUB_ISSUE_TITLE_MAX, buildDraftIssuePrompt, parseAgentIssueDraft } from "./draft-issue";
+import { TRIGGER_FOCUS_INSTRUCTION } from "./trigger-focus";
+
+describe("buildDraftIssuePrompt", () => {
+  it("includes focus instructions and transcript", () => {
+    const prompt = buildDraftIssuePrompt(">>> grok make an issue <<< about logs", "https://github.com/acme/app");
+    expect(prompt).toContain(TRIGGER_FOCUS_INSTRUCTION);
+    expect(prompt).toContain(">>> grok make an issue <<< about logs");
+    expect(prompt).toContain("https://github.com/acme/app");
+  });
+});
 
 describe("parseAgentIssueDraft", () => {
   it("parses raw JSON", () => {

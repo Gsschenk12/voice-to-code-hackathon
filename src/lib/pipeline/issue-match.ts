@@ -1,4 +1,5 @@
 import type { ListedIssue } from "@/lib/github";
+import { TRIGGER_FOCUS_INSTRUCTION } from "./trigger-focus";
 import type { MatchedIssue } from "./types";
 
 export const MAX_MATCHED_ISSUES = 5;
@@ -22,7 +23,8 @@ export function buildIssueMatchPrompt(params: {
     "",
     "Do not use tools. Do not edit files. Reply with JSON only.",
     "Ignore whether the wake phrase asked to file an issue or open a pull request.",
-    "Matching is the same either way. Only return issues that are the same work as the request in the transcript.",
+    "Matching is the same either way. Only return issues that are the same work as the current request in the transcript.",
+    TRIGGER_FOCUS_INSTRUCTION,
     "If none match, return an empty matches array.",
     "",
     "Trigger phrase:",

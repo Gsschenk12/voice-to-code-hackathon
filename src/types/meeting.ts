@@ -6,7 +6,12 @@ export type CaptureSource = "wispr" | "meet";
 export type KeywordMatch = {
   kind: CommandKind;
   phrase: string;
+  /** Start index of the phrase in the normalized transcript. */
   index: number;
+  /** Inclusive start of the phrase in the original (pre-normalize) text. */
+  sourceStart: number;
+  /** Exclusive end of the phrase in the original (pre-normalize) text. */
+  sourceEnd: number;
 };
 
 export type MeetingAgent = {
