@@ -129,6 +129,31 @@ export async function launchCloudAgent(params: LaunchAgentParams): Promise<Launc
   }
 }
 
+/**
+ * One-shot Grok (or catalog fallback) prompt on a no-repo cloud agent.
+ * Used by issue matching — does not clone the target repo or edit this app.
+ */
+export async function promptNoRepoAgent(apiKey: string, prompt: string): Promise<string> {
+  const modelId = await resolveModelId(apiKey);
+  try {
+    const result = await Agent.prompt(prompt, {
+      apiKey,
+      model: { id: modelId },
+      cloud: { repos: [] },
+    });
+    if (result.status !== "finished") {
+      const detail = result.error?.message ?? result.status;
+      throw new Error(`Issue-match agent did not finish: ${detail}`);
+    }
+    return result.result ?? "";
+  } catch (err) {
+    if (err instanceof CursorAgentError) {
+      throw new Error(`Issue-match agent failed: ${err.message}`);
+    }
+    throw err;
+  }
+}
+
 export async function getCloudAgentInfo(apiKey: string, agentId: string) {
   return Agent.get(agentId, { apiKey });
 }
