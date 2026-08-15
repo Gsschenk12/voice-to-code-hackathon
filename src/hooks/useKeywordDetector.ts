@@ -20,6 +20,11 @@ type UseKeywordDetectorOptions = {
   enabled?: boolean;
   onDetect?: (command: DetectedCommand) => void;
   cooldownMs?: number;
+  /**
+   * Skip the first N keyword matches already present in a restored transcript
+   * so refresh does not re-launch commands.
+   */
+  initialFiredCount?: number;
 };
 
 export function useKeywordDetector({
@@ -27,12 +32,19 @@ export function useKeywordDetector({
   enabled = true,
   onDetect,
   cooldownMs = COOLDOWN_MS,
+  initialFiredCount = 0,
 }: UseKeywordDetectorOptions) {
   const [lastMatch, setLastMatch] = useState<DetectedCommand | null>(null);
-  const firedCount = useRef(0);
+  const firedCount = useRef(initialFiredCount);
   const lastFiredAt = useRef(0);
   const onDetectRef = useRef(onDetect);
   onDetectRef.current = onDetect;
+
+  useEffect(() => {
+    if (initialFiredCount > firedCount.current) {
+      firedCount.current = initialFiredCount;
+    }
+  }, [initialFiredCount]);
 
   const reset = useCallback(() => {
     firedCount.current = 0;
@@ -81,4 +93,9 @@ export function useKeywordDetector({
   }, [transcript, enabled, cooldownMs]);
 
   return { lastMatch, reset };
+}
+
+/** Pure helper for tests and hydrate seeding. */
+export function keywordMatchCount(transcript: string): number {
+  return detectAllKeywords(transcript).length;
 }
