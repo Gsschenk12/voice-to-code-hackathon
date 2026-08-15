@@ -1,5 +1,6 @@
 import { auth, signIn, signOut } from "@/lib/auth";
 import Link from "next/link";
+import { ResumeLastMeeting } from "@/components/ResumeLastMeeting";
 
 export default async function HomePage() {
   const session = await auth();
@@ -45,6 +46,7 @@ export default async function HomePage() {
             >
               Set up meeting
             </Link>
+            <ResumeLastMeeting />
             <form
               action={async () => {
                 "use server";
