@@ -3,15 +3,22 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useKeywordDetector } from "@/hooks/useKeywordDetector";
+import { useMeetCaptionStream } from "@/hooks/useMeetCaptionStream";
 import { useWisprStream } from "@/hooks/useWisprStream";
 import { AgentStatus } from "@/components/AgentStatus";
 import { TranscriptPane } from "@/components/TranscriptPane";
-import type { CommandKind, LaunchCommandResponse, MeetingAgent } from "@/types/meeting";
+import type {
+  CaptureSource,
+  CommandKind,
+  LaunchCommandResponse,
+  MeetingAgent,
+} from "@/types/meeting";
 
 type MeetingLiveProps = {
   meetingId: string;
   repoUrl: string;
   startingRef: string;
+  captureSource?: CaptureSource;
 };
 
 function commandErrorMessage(data: unknown, fallback: string): string {
@@ -22,14 +29,22 @@ function commandErrorMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
-export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProps) {
+export function MeetingLive({
+  meetingId,
+  repoUrl,
+  startingRef,
+  captureSource = "wispr",
+}: MeetingLiveProps) {
   const [agents, setAgents] = useState<MeetingAgent[]>([]);
   const [commandLog, setCommandLog] = useState<string[]>([]);
   const [launching, setLaunching] = useState(false);
   const [launchKind, setLaunchKind] = useState<CommandKind | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
 
-  const { status, error, transcript, start, stop } = useWisprStream();
+  const wispr = useWisprStream();
+  const meet = useMeetCaptionStream();
+  const capture = captureSource === "meet" ? meet : wispr;
+  const { status, error, transcript, start, stop } = capture;
 
   const launchCommand = useCallback(
     async (kind: CommandKind, transcriptWindow: string, phrase: string) => {
@@ -129,6 +144,9 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
     }
   }, []);
 
+  const sourceLabel =
+    captureSource === "meet" ? "Google Meet captions" : "Wispr Flow";
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -138,6 +156,7 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
             {repoUrl} <span className="text-zinc-400">@{startingRef}</span>
           </p>
           <p className="font-mono text-xs text-zinc-400">{meetingId}</p>
+          <p className="mt-1 text-xs text-zinc-500">Source: {sourceLabel}</p>
         </div>
         <div className="flex gap-2">
           {status === "listening" || status === "connecting" ? (
@@ -176,7 +195,12 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
         </div>
       ) : null}
 
-      <TranscriptPane transcript={transcript} status={status} error={error} />
+      <TranscriptPane
+        transcript={transcript}
+        status={status}
+        error={error}
+        captureSource={captureSource}
+      />
 
       <AgentStatus agents={agents} onRefresh={(id) => void refreshAgent(id)} />
 
