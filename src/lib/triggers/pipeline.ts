@@ -5,6 +5,12 @@ import type {
   TranscriptSource,
 } from "@/lib/triggers/types";
 
+/**
+ * Trigger → handoff layer (scan sample/live transcripts, then initiate).
+ * Dry-run uses LoggingPipelineInitiator; live agent work uses
+ * CommandPipelineInitiator from src/lib/pipeline (stage runner).
+ */
+
 /** Dry-run initiator: records requests and prints one line per trigger. */
 export class LoggingPipelineInitiator implements PipelineInitiator {
   readonly requests: PipelineRequest[] = [];
