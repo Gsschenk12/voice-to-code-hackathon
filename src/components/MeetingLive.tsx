@@ -261,10 +261,13 @@ export function MeetingLive({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Live meeting</h1>
           <p className="mt-1 break-all text-sm text-zinc-500">
-            {repoUrl} <span className="text-zinc-400">@{startingRef}</span>
+            {repoUrl}{" "}
+            <span className="text-zinc-400">@{startingRef}</span>
           </p>
           <p className="font-mono text-xs text-zinc-400">{meetingId}</p>
-          <p className="mt-1 text-xs text-zinc-500">Source: Google Meet captions</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Source: Google Meet captions
+          </p>
         </div>
         <div className="flex gap-2">
           {status === "listening" || status === "connecting" ? (
