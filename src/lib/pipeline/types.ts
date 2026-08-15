@@ -28,6 +28,7 @@ export type MatchedIssue = {
 export type IssueDecision = {
   action: "create" | "reuse";
   issueNumber?: number;
+  issueUrl?: string;
 };
 
 export type PipelineAgentResult = {
