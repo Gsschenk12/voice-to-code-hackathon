@@ -108,7 +108,7 @@ Open [http://localhost:3000](http://localhost:3000), then:
 
 - Cloud agents can only clone repos already authorized for the Cursor GitHub App. The repo picker uses `Cursor.repositories.list`, not GitHub’s `/user/repos`.
 - Cursor’s agent sandbox token cannot create issues; issue commands inject your GitHub OAuth token as `GITHUB_TOKEN` so the agent can run `gh issue create`.
-- PR commands set `autoCreatePR: true` on the cloud agent.
+- PR commands plan from the associated GitHub issue (matched or just created), then execute that plan on a Cursor cloud agent with `autoCreatePR: true` (branch, atomic commits, PR body linking the issue).
 - Meeting state (transcript, launched agents) lives in the browser for this hackathon scaffold — no database.
 - Meet caption scraping is best-effort: Google’s DOM is not a public API and may change.
 

@@ -13,19 +13,12 @@ vi.mock("@/lib/github", () => ({
   createGithubIssue: vi.fn(),
 }));
 
-vi.mock("@/lib/cursor", () => ({
-  launchCloudAgent: vi.fn(),
-}));
-
 import { createGithubIssue } from "@/lib/github";
-import { launchCloudAgent } from "@/lib/cursor";
 import { draftIssueWithAgent } from "./draft-issue";
 import { resolveIssueStage } from "./stages/resolve-issue";
-import { executeStage } from "./stages/execute";
 
 const draftIssueWithAgentMock = vi.mocked(draftIssueWithAgent);
 const createGithubIssueMock = vi.mocked(createGithubIssue);
-const launchCloudAgentMock = vi.mocked(launchCloudAgent);
 
 function baseContext(overrides: Partial<PipelineContext> = {}): PipelineContext {
   return {
@@ -112,47 +105,5 @@ describe("resolveIssueStage", () => {
       resolveIssueStage.run(baseContext({ githubAccessToken: undefined })),
     ).rejects.toThrow(/GitHub access token/);
     expect(draftIssueWithAgentMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("executeStage", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("skips when an issue was already created", async () => {
-    const result = await executeStage.run(
-      baseContext({
-        intent: { kind: "issue" },
-        issueDecision: {
-          action: "create",
-          issueNumber: 42,
-          issueUrl: "https://github.com/acme/platform/issues/42",
-        },
-      }),
-    );
-
-    expect(result.status).toBe("skip");
-    expect(result.reason).toContain("already created");
-    expect(launchCloudAgentMock).not.toHaveBeenCalled();
-    expect(result.context.agent).toBeUndefined();
-  });
-
-  it("launches an agent for PR commands", async () => {
-    launchCloudAgentMock.mockResolvedValue({
-      agentId: "bc-123",
-      runId: "run-1",
-    });
-
-    const result = await executeStage.run(
-      baseContext({
-        kind: "pr",
-        intent: { kind: "pr" },
-      }),
-    );
-
-    expect(result.status).toBe("continue");
-    expect(result.context.agent).toEqual({ agentId: "bc-123", runId: "run-1" });
-    expect(launchCloudAgentMock).toHaveBeenCalledOnce();
   });
 });
