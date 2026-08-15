@@ -81,12 +81,17 @@ function isRepoList(value: unknown): value is Array<{ url: string }> {
 function isMeetingAgent(value: unknown): value is MeetingAgent {
   if (!value || typeof value !== "object") return false;
   const a = value as Record<string, unknown>;
-  return (
-    typeof a.agentId === "string" &&
-    (a.kind === "issue" || a.kind === "pr") &&
-    typeof a.status === "string" &&
-    typeof a.createdAt === "string"
-  );
+  if (
+    typeof a.agentId !== "string" ||
+    (a.kind !== "issue" && a.kind !== "pr") ||
+    typeof a.status !== "string" ||
+    typeof a.createdAt !== "string"
+  ) {
+    return false;
+  }
+  if (a.pending !== undefined && typeof a.pending !== "boolean") return false;
+  if (a.phrase !== undefined && typeof a.phrase !== "string") return false;
+  return true;
 }
 
 export function parsePersistedSetup(raw: unknown): PersistedSetup | null {

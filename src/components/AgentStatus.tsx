@@ -30,7 +30,7 @@ export function AgentStatus({
                   </span>
                   <span className="text-xs text-zinc-500">{agent.status}</span>
                 </div>
-                {onRefresh ? (
+                {onRefresh && !agent.pending ? (
                   <button
                     type="button"
                     onClick={() => onRefresh(agent.agentId)}
@@ -40,8 +40,11 @@ export function AgentStatus({
                   </button>
                 ) : null}
               </div>
+              {agent.phrase ? (
+                <p className="mt-1 text-xs text-zinc-500">“{agent.phrase}”</p>
+              ) : null}
               <p className="mt-1 break-all font-mono text-xs text-zinc-600 dark:text-zinc-400">
-                {agent.agentId}
+                {agent.pending ? "Starting…" : agent.agentId}
               </p>
               {agent.summary ? (
                 <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">{agent.summary}</p>

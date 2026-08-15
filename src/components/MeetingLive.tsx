@@ -37,6 +37,13 @@ function commandErrorMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
+function newPendingId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `pending-${crypto.randomUUID()}`;
+  }
+  return `pending-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 const TRANSCRIPT_PERSIST_MS = 300;
 
 export function MeetingLive({
@@ -47,8 +54,7 @@ export function MeetingLive({
 }: MeetingLiveProps) {
   const [agents, setAgents] = useState<MeetingAgent[]>([]);
   const [commandLog, setCommandLog] = useState<string[]>([]);
-  const [launching, setLaunching] = useState(false);
-  const [launchKind, setLaunchKind] = useState<CommandKind | null>(null);
+  const [inFlightCount, setInFlightCount] = useState(0);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [seedFiredCount, setSeedFiredCount] = useState(0);
@@ -128,10 +134,22 @@ export function MeetingLive({
 
   const launchCommand = useCallback(
     async (kind: CommandKind, transcriptWindow: string, phrase: string) => {
-      setLaunching(true);
-      setLaunchKind(kind);
+      const pendingId = newPendingId();
+      setInFlightCount((n) => n + 1);
       setSetupError(null);
       setCommandLog((log) => [`Detected “${phrase}” → ${kind}`, ...log].slice(0, 20));
+      setAgents((prev) => [
+        {
+          agentId: pendingId,
+          kind,
+          status: "starting",
+          createdAt: new Date().toISOString(),
+          pending: true,
+          phrase,
+        },
+        ...prev,
+      ]);
+
       try {
         const res = await fetch("/api/commands", {
           method: "POST",
@@ -171,24 +189,42 @@ export function MeetingLive({
         }
 
         if (launched.agentId) {
-          setAgents((prev) => [
-            {
-              agentId: launched.agentId!,
-              runId: launched.runId,
-              kind: launched.kind,
-              status: "running",
-              createdAt: new Date().toISOString(),
-            },
-            ...prev,
-          ]);
+          setAgents((prev) =>
+            prev.map((a) =>
+              a.agentId === pendingId
+                ? {
+                    agentId: launched.agentId!,
+                    runId: launched.runId,
+                    kind: launched.kind,
+                    status: "running",
+                    createdAt: a.createdAt,
+                    phrase: a.phrase,
+                  }
+                : a,
+            ),
+          );
           setCommandLog((log) => [`Launched ${launched.agentId}`, ...log].slice(0, 20));
+        } else {
+          // Issue-only path: drop the optimistic pending row.
+          setAgents((prev) => prev.filter((a) => a.agentId !== pendingId));
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Launch failed";
         setCommandLog((log) => [`Error: ${message}`, ...log].slice(0, 20));
+        setAgents((prev) =>
+          prev.map((a) =>
+            a.agentId === pendingId
+              ? {
+                  ...a,
+                  status: "error",
+                  pending: true,
+                  error: message,
+                }
+              : a,
+          ),
+        );
       } finally {
-        setLaunching(false);
-        setLaunchKind(null);
+        setInFlightCount((n) => Math.max(0, n - 1));
       }
     },
     [meetingId, repoUrl, startingRef],
@@ -196,7 +232,7 @@ export function MeetingLive({
 
   useKeywordDetector({
     transcript,
-    enabled: hydrated && status === "listening" && !launching,
+    enabled: hydrated && status === "listening",
     initialFiredCount: seedFiredCount,
     onDetect: (cmd) => {
       void launchCommand(cmd.kind, cmd.transcriptWindow, cmd.phrase);
@@ -295,9 +331,11 @@ export function MeetingLive({
             <li key={`${i}-${line}`}>{line}</li>
           ))}
         </ul>
-        {launching ? (
+        {inFlightCount > 0 ? (
           <p className="mt-2 text-xs text-amber-600">
-            {launchKind === "issue" ? "Drafting issue…" : "Launching cloud agent…"}
+            {inFlightCount === 1
+              ? "1 pipeline running…"
+              : `${inFlightCount} pipelines running…`}
           </p>
         ) : null}
       </section>
