@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { runMatchIssues } from "./match-issues";
+import { MATCH_SETUP, runMatchIssues } from "./match-issues";
+import { runStages } from "../run";
 import type { PipelineContext } from "../types";
 import type { ListedIssue } from "@/lib/github";
 
@@ -32,53 +33,54 @@ function baseContext(overrides: Partial<PipelineContext> = {}): PipelineContext 
 }
 
 describe("runMatchIssues", () => {
-  it("skips without a GitHub token", async () => {
+  it("halts without a GitHub token so execute does not run", async () => {
     const result = await runMatchIssues(baseContext({ githubAccessToken: undefined }));
-    expect(result.status).toBe("skip");
-    expect(result.reason).toMatch(/no GitHub access token/);
+    expect(result.status).toBe("halt");
+    expect(result.reason).toBe(MATCH_SETUP.noGithubToken);
     expect(result.context.matchedIssues).toBeUndefined();
   });
 
-  it("skips without a Cursor API key", async () => {
+  it("halts without a Cursor API key", async () => {
     const result = await runMatchIssues(baseContext({ apiKey: "  " }));
-    expect(result.status).toBe("skip");
-    expect(result.reason).toMatch(/no Cursor API key/);
+    expect(result.status).toBe("halt");
+    expect(result.reason).toBe(MATCH_SETUP.noCursorKey);
   });
 
-  it("skips on an unparseable repo URL", async () => {
+  it("halts on an unparseable repo URL", async () => {
     const result = await runMatchIssues(baseContext({ repoUrl: "https://gitlab.com/acme/platform" }));
-    expect(result.status).toBe("skip");
-    expect(result.reason).toMatch(/unparseable/);
+    expect(result.status).toBe("halt");
+    expect(result.reason).toBe(MATCH_SETUP.badRepoUrl);
   });
 
-  it("skips when listing issues fails", async () => {
+  it("halts when listing issues fails", async () => {
     const result = await runMatchIssues(baseContext(), {
       listIssues: async () => {
         throw new Error("API down");
       },
     });
-    expect(result.status).toBe("skip");
-    expect(result.reason).toMatch(/failed to list issues: API down/);
+    expect(result.status).toBe("halt");
+    expect(result.reason).toMatch(/Could not list GitHub issues \(API down\)/);
+    expect(result.reason).toMatch(/meeting setup/);
   });
 
-  it("skips when Grok fails", async () => {
+  it("halts when Grok fails", async () => {
     const result = await runMatchIssues(baseContext(), {
       listIssues: async () => issues,
       promptMatch: async () => {
         throw new Error("quota");
       },
     });
-    expect(result.status).toBe("skip");
-    expect(result.reason).toMatch(/Grok match failed: quota/);
+    expect(result.status).toBe("halt");
+    expect(result.reason).toMatch(/Cursor API key \(quota\)/);
   });
 
-  it("skips when Grok returns unparseable output", async () => {
+  it("halts when Grok returns unparseable output", async () => {
     const result = await runMatchIssues(baseContext(), {
       listIssues: async () => issues,
       promptMatch: async () => "sorry I cannot help with that",
     });
-    expect(result.status).toBe("skip");
-    expect(result.reason).toMatch(/Grok match parse failed/);
+    expect(result.status).toBe("halt");
+    expect(result.reason).toMatch(/unexpected response/);
   });
 
   it("continues with an empty list and does not call Grok when the repo has no issues", async () => {
@@ -142,5 +144,33 @@ describe("runMatchIssues", () => {
 
     expect(asIssue.context.matchedIssues).toEqual(asPr.context.matchedIssues);
     expect(asIssue.context.matchedIssues?.[0]?.number).toBe(12);
+  });
+
+  it("does not run later stages after a setup halt", async () => {
+    const ran: string[] = [];
+    const result = await runStages(
+      [
+        {
+          id: "matchIssues",
+          description: "match",
+          run: (ctx) => runMatchIssues(ctx),
+        },
+        {
+          id: "execute",
+          description: "execute",
+          async run(ctx) {
+            ran.push("execute");
+            return { status: "continue" as const, context: ctx };
+          },
+        },
+      ],
+      baseContext({ githubAccessToken: undefined }),
+    );
+
+    expect(ran).toEqual([]);
+    expect(result.agent).toBeUndefined();
+    expect(result.log.some((e) => e.stage === "matchIssues" && e.message === MATCH_SETUP.noGithubToken)).toBe(
+      true,
+    );
   });
 });

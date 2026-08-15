@@ -48,9 +48,15 @@ export async function POST(request: Request) {
     });
 
     if (!result.agent) {
+      const last = result.log.at(-1);
+      const setupHalt = last?.stage === "matchIssues";
       return NextResponse.json(
-        { error: "Pipeline finished without launching an agent", log: result.log },
-        { status: 502 },
+        {
+          error: last?.message ?? "Pipeline finished without launching an agent",
+          code: setupHalt ? "setup" : "pipeline",
+          log: result.log,
+        },
+        { status: setupHalt ? 400 : 502 },
       );
     }
 

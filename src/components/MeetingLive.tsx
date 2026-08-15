@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useKeywordDetector } from "@/hooks/useKeywordDetector";
 import { useWisprStream } from "@/hooks/useWisprStream";
@@ -13,16 +14,26 @@ type MeetingLiveProps = {
   startingRef: string;
 };
 
+function commandErrorMessage(data: unknown, fallback: string): string {
+  if (data && typeof data === "object" && "error" in data) {
+    const error = (data as { error: unknown }).error;
+    if (typeof error === "string" && error.trim()) return error;
+  }
+  return fallback;
+}
+
 export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProps) {
   const [agents, setAgents] = useState<MeetingAgent[]>([]);
   const [commandLog, setCommandLog] = useState<string[]>([]);
   const [launching, setLaunching] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
 
   const { status, error, transcript, start, stop } = useWisprStream();
 
   const launchCommand = useCallback(
     async (kind: CommandKind, transcriptWindow: string, phrase: string) => {
       setLaunching(true);
+      setSetupError(null);
       setCommandLog((log) => [`Detected “${phrase}” → ${kind}`, ...log].slice(0, 20));
       try {
         const res = await fetch("/api/commands", {
@@ -37,20 +48,32 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
             startingRef,
           }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Launch failed");
+        const data: unknown = await res.json();
+        if (!res.ok) {
+          const message = commandErrorMessage(data, "Launch failed");
+          if (
+            data &&
+            typeof data === "object" &&
+            "code" in data &&
+            (data as { code?: unknown }).code === "setup"
+          ) {
+            setSetupError(message);
+          }
+          throw new Error(message);
+        }
 
+        const launched = data as { agentId: string; runId: string; kind: CommandKind };
         setAgents((prev) => [
           {
-            agentId: data.agentId,
-            runId: data.runId,
-            kind: data.kind,
+            agentId: launched.agentId,
+            runId: launched.runId,
+            kind: launched.kind,
             status: "running",
             createdAt: new Date().toISOString(),
           },
           ...prev,
         ]);
-        setCommandLog((log) => [`Launched ${data.agentId}`, ...log].slice(0, 20));
+        setCommandLog((log) => [`Launched ${launched.agentId}`, ...log].slice(0, 20));
       } catch (err) {
         const message = err instanceof Error ? err.message : "Launch failed";
         setCommandLog((log) => [`Error: ${message}`, ...log].slice(0, 20));
@@ -121,6 +144,22 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
           )}
         </div>
       </header>
+
+      {setupError ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+        >
+          <p className="font-semibold">Fix setup before this command can run</p>
+          <p className="mt-1">{setupError}</p>
+          <Link
+            href="/meeting"
+            className="mt-2 inline-block font-medium underline underline-offset-2"
+          >
+            Open meeting setup
+          </Link>
+        </div>
+      ) : null}
 
       <TranscriptPane transcript={transcript} status={status} error={error} />
 
