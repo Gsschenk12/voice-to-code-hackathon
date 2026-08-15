@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Voice to Code — Meet Captions</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 12px 14px;
+        width: 280px;
+        color: #18181b;
+        background: #fafafa;
+      }
+      h1 {
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0 0 10px;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        gap: 8px;
+      }
+      .badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #e4e4e7;
+        color: #52525b;
+      }
+      .badge.ok {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .badge.warn {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .error {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #b91c1c;
+        line-height: 1.4;
+      }
+      .hint {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #71717a;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Meet caption capture</h1>
+    <ul>
+      <li>
+        <span>Meet tab</span>
+        <span id="meet" class="badge">…</span>
+      </li>
+      <li>
+        <span>Captions</span>
+        <span id="captions" class="badge">…</span>
+      </li>
+      <li>
+        <span>App tab</span>
+        <span id="app" class="badge">…</span>
+      </li>
+      <li>
+        <span>Capturing</span>
+        <span id="capturing" class="badge">…</span>
+      </li>
+    </ul>
+    <p id="error" class="error" hidden></p>
+    <p class="hint">
+      Open meet.google.com, turn on captions (CC), then Start listening in Voice
+      to Code with the Meet captions source.
+    </p>
+    <script src="popup.js"></script>
+  </body>
+</html>

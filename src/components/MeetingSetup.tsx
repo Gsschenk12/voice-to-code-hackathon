@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+import type { CaptureSource } from "@/types/meeting";
 
 function newMeetingId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -18,6 +19,7 @@ export function MeetingSetup() {
   const [repos, setRepos] = useState<Array<{ url: string }>>([]);
   const [repoUrl, setRepoUrl] = useState("");
   const [startingRef, setStartingRef] = useState("main");
+  const [captureSource, setCaptureSource] = useState<CaptureSource>("wispr");
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,9 +70,17 @@ export function MeetingSetup() {
     const params = new URLSearchParams({
       repo: repoUrl,
       ref: startingRef || "main",
+      source: captureSource,
     });
     router.push(`/meeting/${id}?${params.toString()}`);
-  }, [repoUrl, startingRef, cursorKey, session?.cursorApiKey, router]);
+  }, [
+    repoUrl,
+    startingRef,
+    captureSource,
+    cursorKey,
+    session?.cursorApiKey,
+    router,
+  ]);
 
   if (status === "loading") {
     return <p className="text-sm text-zinc-500">Loading session…</p>;
@@ -166,6 +176,45 @@ export function MeetingSetup() {
           />
         </label>
       </div>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-sm font-medium">Transcript source</legend>
+        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+          <input
+            type="radio"
+            name="captureSource"
+            value="wispr"
+            checked={captureSource === "wispr"}
+            onChange={() => setCaptureSource("wispr")}
+            className="mt-1"
+          />
+          <span>
+            <span className="font-medium">Wispr Flow (mic)</span>
+            <span className="mt-0.5 block text-xs text-zinc-500">
+              Streams your microphone through Wispr. Requires{" "}
+              <code className="font-mono">WISPR_API_KEY</code>.
+            </span>
+          </span>
+        </label>
+        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+          <input
+            type="radio"
+            name="captureSource"
+            value="meet"
+            checked={captureSource === "meet"}
+            onChange={() => setCaptureSource("meet")}
+            className="mt-1"
+          />
+          <span>
+            <span className="font-medium">Google Meet captions (free)</span>
+            <span className="mt-0.5 block text-xs text-zinc-500">
+              Reads live captions from a Meet tab via the unpacked Chrome
+              extension in <code className="font-mono">extension/</code>. No
+              ASR key needed.
+            </span>
+          </span>
+        </label>
+      </fieldset>
 
       <button
         type="button"

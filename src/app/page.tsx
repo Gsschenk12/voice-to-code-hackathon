@@ -14,7 +14,11 @@ export default async function HomePage() {
           Speak an issue or PR into existence
         </h1>
         <p className="text-lg text-zinc-600 dark:text-zinc-400">
-          Stream a meeting through Wispr Flow. Say{" "}
+          Capture a meeting via{" "}
+          <span className="font-medium text-zinc-900 dark:text-zinc-100">
+            Google Meet captions
+          </span>{" "}
+          (free Chrome extension) or Wispr Flow. Say{" "}
           <span className="font-medium text-zinc-900 dark:text-zinc-100">
             “grok make an issue”
           </span>{" "}
@@ -75,7 +79,10 @@ export default async function HomePage() {
       <ol className="list-decimal space-y-2 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
         <li>Auth with GitHub (repo scope for issue creation via cloud agents).</li>
         <li>Enter your Cursor API key and select a Cursor-connected repository.</li>
-        <li>Start listening, then say the wake phrase during the meeting.</li>
+        <li>
+          Choose Meet captions (free extension) or Wispr mic, start listening, then
+          say the wake phrase during the meeting.
+        </li>
       </ol>
     </main>
   );
