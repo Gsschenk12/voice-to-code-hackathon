@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Voice to Code — Meet Captions",
+  "version": "0.1.0",
+  "description": "Capture Google Meet live captions and stream them into Voice to Code (free alternative to Wispr).",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Voice to Code — Meet Captions"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content/meet.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:3000/*", "http://127.0.0.1:3000/*"],
+      "js": ["content/app.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
