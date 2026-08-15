@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectAllKeywords,
   detectKeyword,
+  isGrokWakeWord,
   normalizeTranscript,
   rollingWindow,
 } from "@/lib/keywords";
@@ -36,6 +37,26 @@ describe("detectKeyword", () => {
   it("returns null when absent", () => {
     expect(detectKeyword("let's talk about the roadmap")).toBeNull();
   });
+
+  it("is case-insensitive for the wake word", () => {
+    expect(detectKeyword("GROK make an issue about logging")?.kind).toBe("issue");
+    expect(detectKeyword("Grok make a PR for dark mode")?.kind).toBe("pr");
+  });
+
+  it("accepts STT aliases for the wake word", () => {
+    expect(detectKeyword("hey team rock make an issue about the login bug")?.kind).toBe("issue");
+    expect(detectKeyword("okay groc make a PR for dark mode")?.kind).toBe("pr");
+    expect(detectKeyword("please brock make a pull request now")?.kind).toBe("pr");
+  });
+
+  it("accepts 1-edit misspellings of grok", () => {
+    expect(detectKeyword("grot make an issue please")?.kind).toBe("issue");
+  });
+
+  it("does not treat go or make-only phrases as a wake word", () => {
+    expect(detectKeyword("go make a PR for dark mode")).toBeNull();
+    expect(detectKeyword("let's make an issue about logging")).toBeNull();
+  });
 });
 
 describe("detectAllKeywords", () => {
@@ -57,6 +78,33 @@ describe("detectAllKeywords", () => {
 
   it("returns empty when absent", () => {
     expect(detectAllKeywords("let's talk about the roadmap")).toEqual([]);
+  });
+
+  it("canonicalizes mixed STT aliases to grok phrases", () => {
+    const matches = detectAllKeywords(
+      "uh rock um make an issue please then brock make a PR for the fix",
+    );
+    expect(matches.map((m) => m.kind)).toEqual(["issue", "pr"]);
+    expect(matches[0]?.phrase).toBe("grok make an issue");
+    expect(matches[1]?.phrase).toBe("grok make a pr");
+  });
+});
+
+describe("isGrokWakeWord", () => {
+  it("accepts grok, listed aliases, and 1-edit variants", () => {
+    expect(isGrokWakeWord("grok")).toBe(true);
+    expect(isGrokWakeWord("GROK")).toBe(true);
+    expect(isGrokWakeWord("rock")).toBe(true);
+    expect(isGrokWakeWord("groc")).toBe(true);
+    expect(isGrokWakeWord("brock")).toBe(true);
+    expect(isGrokWakeWord("grot")).toBe(true);
+  });
+
+  it("rejects common words that are not close to grok", () => {
+    expect(isGrokWakeWord("go")).toBe(false);
+    expect(isGrokWakeWord("ok")).toBe(false);
+    expect(isGrokWakeWord("make")).toBe(false);
+    expect(isGrokWakeWord("issue")).toBe(false);
   });
 });
 
