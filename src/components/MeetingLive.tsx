@@ -6,7 +6,7 @@ import { useKeywordDetector } from "@/hooks/useKeywordDetector";
 import { useWisprStream } from "@/hooks/useWisprStream";
 import { AgentStatus } from "@/components/AgentStatus";
 import { TranscriptPane } from "@/components/TranscriptPane";
-import type { CommandKind, MeetingAgent } from "@/types/meeting";
+import type { CommandKind, LaunchCommandResponse, MeetingAgent } from "@/types/meeting";
 
 type MeetingLiveProps = {
   meetingId: string;
@@ -26,6 +26,7 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
   const [agents, setAgents] = useState<MeetingAgent[]>([]);
   const [commandLog, setCommandLog] = useState<string[]>([]);
   const [launching, setLaunching] = useState(false);
+  const [launchKind, setLaunchKind] = useState<CommandKind | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
 
   const { status, error, transcript, start, stop } = useWisprStream();
@@ -33,6 +34,7 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
   const launchCommand = useCallback(
     async (kind: CommandKind, transcriptWindow: string, phrase: string) => {
       setLaunching(true);
+      setLaunchKind(kind);
       setSetupError(null);
       setCommandLog((log) => [`Detected “${phrase}” → ${kind}`, ...log].slice(0, 20));
       try {
@@ -62,23 +64,36 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
           throw new Error(message);
         }
 
-        const launched = data as { agentId: string; runId: string; kind: CommandKind };
-        setAgents((prev) => [
-          {
-            agentId: launched.agentId,
-            runId: launched.runId,
-            kind: launched.kind,
-            status: "running",
-            createdAt: new Date().toISOString(),
-          },
-          ...prev,
-        ]);
-        setCommandLog((log) => [`Launched ${launched.agentId}`, ...log].slice(0, 20));
+        const launched = data as LaunchCommandResponse;
+
+        if (launched.issue) {
+          setCommandLog((log) =>
+            [
+              `Created issue #${launched.issue!.number}: ${launched.issue!.url}`,
+              ...log,
+            ].slice(0, 20),
+          );
+        }
+
+        if (launched.agentId) {
+          setAgents((prev) => [
+            {
+              agentId: launched.agentId!,
+              runId: launched.runId,
+              kind: launched.kind,
+              status: "running",
+              createdAt: new Date().toISOString(),
+            },
+            ...prev,
+          ]);
+          setCommandLog((log) => [`Launched ${launched.agentId}`, ...log].slice(0, 20));
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Launch failed";
         setCommandLog((log) => [`Error: ${message}`, ...log].slice(0, 20));
       } finally {
         setLaunching(false);
+        setLaunchKind(null);
       }
     },
     [meetingId, repoUrl, startingRef],
@@ -175,7 +190,11 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
             <li key={`${i}-${line}`}>{line}</li>
           ))}
         </ul>
-        {launching ? <p className="mt-2 text-xs text-amber-600">Launching cloud agent…</p> : null}
+        {launching ? (
+          <p className="mt-2 text-xs text-amber-600">
+            {launchKind === "issue" ? "Drafting issue…" : "Launching cloud agent…"}
+          </p>
+        ) : null}
       </section>
     </div>
   );

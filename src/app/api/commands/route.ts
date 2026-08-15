@@ -3,6 +3,9 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { PipelineStageError, runPipeline } from "@/lib/pipeline";
 
+/** Cloud issue draft + create can exceed the default serverless budget. */
+export const maxDuration = 300;
+
 const bodySchema = z.object({
   meetingId: z.string().min(1),
   kind: z.enum(["issue", "pr"]),
@@ -47,12 +50,25 @@ export async function POST(request: Request) {
       githubAccessToken: session.githubAccessToken,
     });
 
-    if (!result.agent) {
+    const responseKind = result.intent?.kind ?? kind;
+    const createdIssue =
+      result.issueDecision?.action === "create" &&
+      result.issueDecision.issueNumber != null &&
+      result.issueDecision.issueUrl
+        ? {
+            number: result.issueDecision.issueNumber,
+            url: result.issueDecision.issueUrl,
+          }
+        : undefined;
+
+    if (!result.agent && !createdIssue) {
       const last = result.log.at(-1);
       const setupHalt = last?.stage === "matchIssues";
       return NextResponse.json(
         {
-          error: last?.message ?? "Pipeline finished without launching an agent",
+          error:
+            last?.message ??
+            "Pipeline finished without launching an agent or creating an issue",
           code: setupHalt ? "setup" : "pipeline",
           log: result.log,
         },
@@ -61,9 +77,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      agentId: result.agent.agentId,
-      runId: result.agent.runId,
-      kind: result.intent?.kind ?? kind,
+      kind: responseKind,
+      ...(result.agent
+        ? { agentId: result.agent.agentId, runId: result.agent.runId }
+        : {}),
+      ...(createdIssue ? { issue: createdIssue } : {}),
     });
   } catch (err) {
     const message =

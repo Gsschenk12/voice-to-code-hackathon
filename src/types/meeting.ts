@@ -28,9 +28,13 @@ export type LaunchCommandRequest = {
 };
 
 export type LaunchCommandResponse = {
-  agentId: string;
-  runId: string;
   kind: CommandKind;
+  agentId?: string;
+  runId?: string;
+  issue?: {
+    number: number;
+    url: string;
+  };
 };
 
 export type CursorRepo = {
