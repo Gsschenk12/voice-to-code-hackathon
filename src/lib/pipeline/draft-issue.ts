@@ -3,11 +3,7 @@
  * inspect the cloned repo and the meeting transcript. Does not create
  * the issue — that happens via Octokit after this returns.
  */
-import {
-  Agent,
-  CursorAgentError,
-  IntegrationNotConnectedError,
-} from "@cursor/sdk";
+import { promptCloudAgent } from "@/lib/cursor";
 
 export const ISSUE_DRAFT_MODEL = "grok-4.6";
 export const GITHUB_ISSUE_TITLE_MAX = 256;
@@ -102,7 +98,7 @@ export function parseAgentIssueDraft(raw: string): IssueDraft {
 
 /**
  * One-shot cloud agent: clone repo, draft title/body from transcript + code.
- * Does not inject GITHUB_TOKEN so the agent cannot create the issue itself.
+ * Uses shared promptCloudAgent — does not inject GITHUB_TOKEN.
  */
 export async function draftIssueWithAgent(params: DraftIssueParams): Promise<IssueDraft> {
   const {
@@ -113,50 +109,18 @@ export async function draftIssueWithAgent(params: DraftIssueParams): Promise<Iss
     meetingId,
   } = params;
 
-  const prompt = buildDraftIssuePrompt(transcriptWindow, repoUrl);
+  const { text } = await promptCloudAgent({
+    apiKey,
+    modelId: ISSUE_DRAFT_MODEL,
+    prompt: buildDraftIssuePrompt(transcriptWindow, repoUrl),
+    repos: [{ url: repoUrl, startingRef }],
+    autoCreatePR: false,
+    metadata: {
+      meeting_id: meetingId,
+      command: "draft-issue",
+    },
+    logLabel: "draft-issue",
+  });
 
-  try {
-    const result = await Agent.prompt(prompt, {
-      apiKey,
-      model: { id: ISSUE_DRAFT_MODEL },
-      cloud: {
-        repos: [{ url: repoUrl, startingRef }],
-        autoCreatePR: false,
-        skipReviewerRequest: true,
-        metadata: {
-          meeting_id: meetingId,
-          command: "draft-issue",
-        },
-      },
-    });
-
-    console.info("[cursor] issue draft finished", {
-      runId: result.id,
-      status: result.status,
-      meetingId,
-      durationMs: result.durationMs,
-    });
-
-    if (result.status !== "finished") {
-      const detail = result.error?.message ?? result.status;
-      throw new Error(`Issue draft agent did not finish: ${detail}`);
-    }
-
-    const text = result.result?.trim();
-    if (!text) {
-      throw new Error("Issue draft agent returned no result text");
-    }
-
-    return parseAgentIssueDraft(text);
-  } catch (err) {
-    if (err instanceof IntegrationNotConnectedError) {
-      throw new Error(
-        "GitHub integration is not connected for this Cursor key. Open Cursor Integrations and reconnect GitHub.",
-      );
-    }
-    if (err instanceof CursorAgentError) {
-      throw new Error(`Cursor agent failed to start: ${err.message}`);
-    }
-    throw err;
-  }
+  return parseAgentIssueDraft(text);
 }

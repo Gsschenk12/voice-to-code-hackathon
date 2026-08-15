@@ -24,6 +24,50 @@ export type LaunchAgentResult = {
   runId: string;
 };
 
+export type CloudRepoRef = {
+  url: string;
+  startingRef?: string;
+};
+
+/**
+ * Options for a one-shot cloud agent that waits for the final assistant text.
+ * Pipeline stages (issue draft, matching, etc.) should prefer this over raw SDK calls.
+ */
+export type PromptCloudAgentParams = {
+  apiKey: string;
+  prompt: string;
+  /** Model id (e.g. "grok-4.6"). Defaults to resolveModelId(apiKey). */
+  modelId?: string;
+  /** Repos to clone into the cloud VM. Empty = no-repo agent. */
+  repos?: CloudRepoRef[];
+  autoCreatePR?: boolean;
+  skipReviewerRequest?: boolean;
+  envVars?: Record<string, string>;
+  metadata?: Record<string, string>;
+  /** Short label for logs (e.g. "draft-issue", "issue-match"). */
+  logLabel?: string;
+  /** Require non-empty result.result; default true. */
+  requireResultText?: boolean;
+};
+
+export type PromptCloudAgentResult = {
+  text: string;
+  runId: string;
+  durationMs?: number;
+};
+
+function wrapCursorAgentError(err: unknown): never {
+  if (err instanceof IntegrationNotConnectedError) {
+    throw new Error(
+      "GitHub integration is not connected for this Cursor key. Open Cursor Integrations and reconnect GitHub.",
+    );
+  }
+  if (err instanceof CursorAgentError) {
+    throw new Error(`Cursor agent failed to start: ${err.message}`);
+  }
+  throw err;
+}
+
 /** Prefer a grok-named model when available; otherwise fall back. */
 export async function resolveModelId(apiKey: string): Promise<string> {
   try {
@@ -54,6 +98,75 @@ export async function listCursorRepositories(apiKey: string): Promise<Array<{ ur
   }
 }
 
+/**
+ * One-shot cloud Agent.prompt: create, run, wait, dispose.
+ * Returns final assistant text. Used by pipeline stages that need a synchronous
+ * model response (issue drafting, matching, future steps).
+ */
+export async function promptCloudAgent(
+  params: PromptCloudAgentParams,
+): Promise<PromptCloudAgentResult> {
+  const {
+    apiKey,
+    prompt,
+    repos = [],
+    autoCreatePR = false,
+    skipReviewerRequest = true,
+    envVars,
+    metadata,
+    logLabel = "cloud-prompt",
+    requireResultText = true,
+  } = params;
+
+  const modelId = params.modelId ?? (await resolveModelId(apiKey));
+
+  try {
+    const result = await Agent.prompt(prompt, {
+      apiKey,
+      model: { id: modelId },
+      cloud: {
+        repos: repos.map((r) => ({
+          url: r.url,
+          startingRef: r.startingRef ?? "main",
+        })),
+        autoCreatePR,
+        skipReviewerRequest,
+        ...(envVars && Object.keys(envVars).length > 0 ? { envVars } : {}),
+        ...(metadata ? { metadata } : {}),
+      },
+    });
+
+    console.info(`[cursor] ${logLabel} finished`, {
+      runId: result.id,
+      status: result.status,
+      modelId,
+      durationMs: result.durationMs,
+    });
+
+    if (result.status !== "finished") {
+      const detail = result.error?.message ?? result.status;
+      throw new Error(`${logLabel} agent did not finish: ${detail}`);
+    }
+
+    const text = result.result?.trim() ?? "";
+    if (requireResultText && !text) {
+      throw new Error(`${logLabel} agent returned no result text`);
+    }
+
+    return {
+      text,
+      runId: result.id,
+      durationMs: result.durationMs,
+    };
+  } catch (err) {
+    wrapCursorAgentError(err);
+  }
+}
+
+/**
+ * Fire-and-forget cloud agent for PR / long-running work.
+ * Returns agent + run ids immediately; the run continues after dispose.
+ */
 export async function launchCloudAgent(params: LaunchAgentParams): Promise<LaunchAgentResult> {
   const {
     apiKey,
@@ -117,15 +230,7 @@ export async function launchCloudAgent(params: LaunchAgentParams): Promise<Launc
       runId: run.id,
     };
   } catch (err) {
-    if (err instanceof IntegrationNotConnectedError) {
-      throw new Error(
-        "GitHub integration is not connected for this Cursor key. Open Cursor Integrations and reconnect GitHub.",
-      );
-    }
-    if (err instanceof CursorAgentError) {
-      throw new Error(`Cursor agent failed to start: ${err.message}`);
-    }
-    throw err;
+    wrapCursorAgentError(err);
   }
 }
 
@@ -134,24 +239,14 @@ export async function launchCloudAgent(params: LaunchAgentParams): Promise<Launc
  * Used by issue matching — does not clone the target repo or edit this app.
  */
 export async function promptNoRepoAgent(apiKey: string, prompt: string): Promise<string> {
-  const modelId = await resolveModelId(apiKey);
-  try {
-    const result = await Agent.prompt(prompt, {
-      apiKey,
-      model: { id: modelId },
-      cloud: { repos: [] },
-    });
-    if (result.status !== "finished") {
-      const detail = result.error?.message ?? result.status;
-      throw new Error(`Issue-match agent did not finish: ${detail}`);
-    }
-    return result.result ?? "";
-  } catch (err) {
-    if (err instanceof CursorAgentError) {
-      throw new Error(`Issue-match agent failed: ${err.message}`);
-    }
-    throw err;
-  }
+  const { text } = await promptCloudAgent({
+    apiKey,
+    prompt,
+    repos: [],
+    logLabel: "issue-match",
+    requireResultText: false,
+  });
+  return text;
 }
 
 export async function getCloudAgentInfo(apiKey: string, agentId: string) {
