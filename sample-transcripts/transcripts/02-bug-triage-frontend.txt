@@ -1,0 +1,87 @@
+# Frontend Bug Triage
+
+**Date:** August 13, 2026
+**Duration:** 31:06
+**Attendees:** Sam Ortiz, Riley Nguyen, Casey Brooks, Morgan Lee
+
+## Flow Summary
+
+QA logged four regressions from yesterday's deploy. The team prioritized a dark mode flash on settings, mobile nav overlap, a chart tooltip bounds bug with a ready fix, duplicate React keys in notifications, and an accessibility failure on the invite user modal focus trap. Sam used Grok triggers to file issues and open pull requests during triage.
+
+## Transcript
+
+**Casey Brooks** · 0:05
+
+I logged four regressions from yesterday's deploy. Highest priority is the settings page — toggling dark mode flashes white for about two hundred milliseconds.
+
+**Sam Ortiz** · 0:16
+
+Classic hydration mismatch. Riley, can you own that?
+
+**Riley Nguyen** · 0:21
+
+Yeah. grok make an issue titled "Fix dark mode flash on settings page hydration". In the description, mention it reproduces on Chrome and Safari, only on hard refresh, and attach Casey's screen recording from Slack thread in #qa-bugs.
+
+**Casey Brooks** · 0:38
+
+I'll drop the link in the issue comment after it's created.
+
+**Morgan Lee** · 0:42
+
+The mobile nav overlap is still open from last sprint. Design sent updated spacing tokens yesterday.
+
+**Sam Ortiz** · 0:50
+
+Let's re-open tracking if it got lost. grok make an issue — "Apply updated mobile nav spacing tokens (design v3)". Body: reference Figma file "Dashboard Nav — Aug 2026", breakpoints sm and md, acceptance criteria is no overlap with the floating action button on iPhone 14 viewport.
+
+**Riley Nguyen** · 1:08
+
+On the chart tooltip bug — I already have a branch with a fix. Tooltip position was using stale container bounds.
+
+**Sam Ortiz** · 1:17
+
+Ship it. grok make a PR from branch fix/chart-tooltip-bounds — implement the getBoundingClientRect refresh on scroll and resize, add a Playwright test in e2e/charts.spec.ts, and request review from Casey.
+
+**Casey Brooks** · 1:33
+
+I'll verify on staging once CI is green.
+
+**Riley Nguyen** · 1:37
+
+There's also a console warning about duplicate keys in the notifications list. Low severity but noisy.
+
+**Sam Ortiz** · 1:44
+
+grok make an issue for "Remove duplicate React keys in notifications list". Label good-first-issue. Note the warning points at NotificationsPanel.tsx line 88.
+
+**Morgan Lee** · 1:56
+
+Accessibility audit flagged the modal focus trap on "Invite user" — tab escapes to the background.
+
+**Casey Brooks** · 2:03
+
+That's a11y-blocker for the release candidate.
+
+**Sam Ortiz** · 2:07
+
+Agreed. Riley, after the chart PR, grok make a PR that fixes focus trap in InviteUserModal using the same pattern we used on DeleteAccountModal. Include a note in the PR body that it closes whatever issue Casey files for the audit finding.
+
+**Casey Brooks** · 2:24
+
+I'll file that now verbally — grok make an issue titled "Invite user modal focus trap fails WCAG 2.4.3". Tag accessibility and release-blocker.
+
+**Riley Nguyen** · 2:36
+
+Four items in thirty minutes. Love triage day.
+
+**Sam Ortiz** · 2:40
+
+Recap: two issues for dark mode and duplicate keys, one issue for nav tokens and one for a11y, two PRs for chart tooltip and modal focus. Casey validates both PRs on staging.
+
+**Morgan Lee** · 2:54
+
+I'll update Figma links in the nav spacing issue once it exists.
+
+**Sam Ortiz** · 2:59
+
+Thanks everyone.

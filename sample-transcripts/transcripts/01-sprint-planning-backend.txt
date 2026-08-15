@@ -1,0 +1,95 @@
+# Backend Sprint Planning
+
+**Date:** August 12, 2026
+**Duration:** 28:14
+**Attendees:** Maya Chen, Jordan Park, Priya Sharma, Alex Kim
+
+## Flow Summary
+
+The team walked the sprint board and covered webhook delivery logging gaps, a refresh token race when two browser tabs refresh at once, hardcoded rate limiter config, and an OpenAPI spec that lags production. Maya assigned GitHub issues and pull requests via Grok voice triggers throughout the call.
+
+## Transcript
+
+**Maya Chen** · 0:08
+
+Alright, let's walk the board. Jordan, where are we on the webhook retry logic?
+
+**Jordan Park** · 0:15
+
+Retry backoff is merged, but we're still missing structured logging on failed deliveries. Right now it's just, um, a generic error string in CloudWatch.
+
+**Alex Kim** · 0:24
+
+That's going to bite us during the enterprise pilot. Can we track that formally?
+
+**Maya Chen** · 0:31
+
+Yeah. Jordan, grok make an issue — title something like "Add structured logging for webhook delivery failures" and in the body call out we need request ID, tenant ID, endpoint URL, HTTP status, and retry count. Label it backend and observability.
+
+**Jordan Park** · 0:48
+
+Got it. I'll add acceptance criteria once the issue exists.
+
+**Priya Sharma** · 0:53
+
+On auth, the refresh token rotation PR from last week exposed a race when two tabs refresh at once. I have a repro locally.
+
+**Maya Chen** · 1:02
+
+Is it a quick fix or do we need design?
+
+**Priya Sharma** · 1:06
+
+I think it's a mutex around the token store write. Maybe fifty lines. If we're aligned, grok make a PR — branch off main, fix the concurrent refresh race in auth/refresh.go, add a unit test that simulates two simultaneous refresh calls, and link issue number 847 if that's still open.
+
+**Jordan Park** · 1:24
+
+847 is open, yeah.
+
+**Alex Kim** · 1:27
+
+Before we move on — the rate limiter config is still hardcoded. Customers are asking for per-tenant overrides.
+
+**Maya Chen** · 1:35
+
+Good catch. grok make an issue for "Support per-tenant rate limit overrides in gateway config". Body should mention the admin API needs a PATCH endpoint and that default limits stay in env vars for now. Tag platform and api-gateway.
+
+**Priya Sharma** · 1:52
+
+While we're on gateway — I stubbed the PATCH handler but didn't wire validation. Should I finish that in the same PR as the mutex fix?
+
+**Maya Chen** · 2:01
+
+No, keep them separate. grok make a PR for just the refresh token mutex fix. We'll do rate limits as its own epic.
+
+**Jordan Park** · 2:11
+
+Speaking of epics, the OpenAPI spec is three endpoints behind production.
+
+**Alex Kim** · 2:16
+
+Can Grok file that so we don't forget?
+
+**Jordan Park** · 2:19
+
+grok make an issue — "Sync OpenAPI spec with production routes for /v2/billing, /v2/usage, and /v2/teams". Assign it to me. Note that Redoc on the docs site is showing stale schemas.
+
+**Maya Chen** · 2:34
+
+Last item — Jordan's logging work. Once the issue is filed, if you have bandwidth today, grok make a PR that adds the structured log fields I described earlier. Don't merge without review; just get the PR up with a draft label.
+
+**Jordan Park** · 2:51
+
+Works for me. I'll do issue first, then the PR references it.
+
+**Alex Kim** · 2:56
+
+Perfect. Anything else?
+
+**Priya Sharma** · 2:58
+
+Nope. I'll push the refresh fix PR after standup.
+
+**Maya Chen** · 3:02
+
+Cool. Recap: two issues for logging and OpenAPI, two PRs for token race and optional draft logging PR. See you at standup.

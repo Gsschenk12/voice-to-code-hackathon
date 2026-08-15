@@ -1,0 +1,240 @@
+{
+  "description": "Ground-truth expected GitHub actions extracted from sample transcripts. The linked_repo is set at meeting start (session metadata), not spoken in the transcript.",
+  "transcripts": [
+    {
+      "file": "01-sprint-planning-backend.txt",
+      "linked_repo": "acme-corp/platform-api",
+      "actions": [
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Add structured logging for webhook delivery failures",
+          "labels": ["backend", "observability"],
+          "body_hints": ["request ID", "tenant ID", "endpoint URL", "HTTP status", "retry count"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "Fix concurrent refresh token race in auth/refresh.go",
+          "branch": "off main",
+          "requirements": ["unit test for two simultaneous refresh calls", "link issue 847"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Support per-tenant rate limit overrides in gateway config",
+          "labels": ["platform", "api-gateway"],
+          "body_hints": ["PATCH endpoint", "default limits in env vars"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "Refresh token mutex fix only",
+          "note": "Separate from rate limit work"
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Sync OpenAPI spec with production routes for /v2/billing, /v2/usage, and /v2/teams",
+          "assignee": "Jordan",
+          "body_hints": ["Redoc stale schemas"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "Add structured log fields for webhook delivery failures",
+          "note": "Draft PR, do not merge without review"
+        }
+      ]
+    },
+    {
+      "file": "02-bug-triage-frontend.txt",
+      "linked_repo": "acme-corp/dashboard-ui",
+      "actions": [
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Fix dark mode flash on settings page hydration",
+          "body_hints": ["Chrome and Safari", "hard refresh", "Casey screen recording"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Apply updated mobile nav spacing tokens (design v3)",
+          "body_hints": ["Figma Dashboard Nav Aug 2026", "iPhone 14", "no FAB overlap"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "branch": "fix/chart-tooltip-bounds",
+          "task": "Fix chart tooltip bounds on scroll/resize",
+          "requirements": ["Playwright test e2e/charts.spec.ts", "request review from Casey"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Remove duplicate React keys in notifications list",
+          "labels": ["good-first-issue"],
+          "body_hints": ["NotificationsPanel.tsx line 88"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "Fix focus trap in InviteUserModal",
+          "body_hints": ["same pattern as DeleteAccountModal", "closes a11y audit issue"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Invite user modal focus trap fails WCAG 2.4.3",
+          "labels": ["accessibility", "release-blocker"]
+        }
+      ]
+    },
+    {
+      "file": "03-feature-kickoff-analytics.txt",
+      "linked_repo": "acme-corp/analytics-service",
+      "actions": [
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Implement async export job queue for large dataset downloads",
+          "body_hints": ["Redis", "pending/running/completed/failed", "7 day retention", "500MB max"],
+          "milestone": "Q3-Enterprise"
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Add Parquet schema version metadata to export files",
+          "labels": ["data-platform"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "branch": "feature/export-progress-ui",
+          "task": "ExportProgressPanel with mocked job states and Storybook"
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "GET /exports/{jobId} and POST /exports/async",
+          "requirements": ["OpenAPI updates", "tests/export_async_test.go"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Define nested event column flattening rules for Parquet export",
+          "assignee": "Omar"
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "Wire ExportProgressPanel to real polling endpoint",
+          "requirements": ["feature flag export_v2_enabled", "error states for failed jobs"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Add metrics and alerts for export job failure rate",
+          "body_hints": ["Prometheus counters", "5% failure rate over 15 minutes"]
+        }
+      ]
+    },
+    {
+      "file": "04-incident-review-infra.txt",
+      "linked_repo": "acme-corp/deploy-pipeline",
+      "actions": [
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Remove deprecated /healthz from canary health check config",
+          "body_hints": ["/ready", "staging and prod Terraform", "INC-2026-0811"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Audit log all production promotion events",
+          "labels": ["security", "compliance"],
+          "body_hints": ["actor", "commit SHA", "SIEM webhook"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "branch": "fix/canary-health-ready-path",
+          "task": "Change health_check_path to /ready in modules/canary/main.tf",
+          "requirements": ["terraform fmt", "update README"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Add CI smoke test asserting canary health path matches app readiness route",
+          "labels": ["good-first-issue"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "Add scripts/verify-health-path.sh and wire in deploy-verify.yml"
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "Draft scaffold audit log hook in internal/promote/audit.go",
+          "note": "Draft only, TODO markers, no SIEM wiring"
+        }
+      ]
+    },
+    {
+      "file": "05-daily-standup-mixed.txt",
+      "linked_repo": "acme-corp/platform-api",
+      "actions": [
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Update API docs for default page size change to 50",
+          "labels": ["documentation"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Fix npm publish workflow for semver tags in packages/",
+          "body_hints": ["GitHub Actions run 1847293", "auto-publish on tag push v*"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "branch": "fix/retry-helper-backoff",
+          "task": "Export RetryWithBackoff from packages/retry",
+          "requirements": ["cap at 3 attempts", "README docs", "jitter tests"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Fix typo in onboarding error message EN-401",
+          "labels": ["good-first-issue"],
+          "assignee": "Drew",
+          "body_hints": ["invaid -> invalid email"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "branch": "fix/onboarding-typo",
+          "task": "Fix typo in handlers/onboarding.go",
+          "requirements": ["reference issue in PR description"]
+        },
+        {
+          "trigger": "grok make an issue",
+          "type": "issue",
+          "title": "Health check should return 503 when database unreachable",
+          "priority": "high",
+          "body_hints": ["/health returns 503", "status degraded"]
+        },
+        {
+          "trigger": "grok make a PR",
+          "type": "pull_request",
+          "task": "Bump packages/retry version in root lockfile after publish",
+          "note": "Version bump and lockfile only, separate from retry logic"
+        }
+      ]
+    }
+  ]
+}

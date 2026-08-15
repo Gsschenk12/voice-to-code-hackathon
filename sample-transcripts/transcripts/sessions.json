@@ -1,0 +1,30 @@
+{
+  "description": "Meeting session metadata. linked_repo is set when the user starts a recording — it is not part of the Wispr transcript.",
+  "sessions": [
+    {
+      "transcript_file": "01-sprint-planning-backend.txt",
+      "linked_repo": "acme-corp/platform-api",
+      "linked_at": "2026-08-12T14:00:00-05:00"
+    },
+    {
+      "transcript_file": "02-bug-triage-frontend.txt",
+      "linked_repo": "acme-corp/dashboard-ui",
+      "linked_at": "2026-08-13T10:30:00-05:00"
+    },
+    {
+      "transcript_file": "03-feature-kickoff-analytics.txt",
+      "linked_repo": "acme-corp/analytics-service",
+      "linked_at": "2026-08-14T09:00:00-05:00"
+    },
+    {
+      "transcript_file": "04-incident-review-infra.txt",
+      "linked_repo": "acme-corp/deploy-pipeline",
+      "linked_at": "2026-08-11T16:00:00-05:00"
+    },
+    {
+      "transcript_file": "05-daily-standup-mixed.txt",
+      "linked_repo": "acme-corp/platform-api",
+      "linked_at": "2026-08-15T09:15:00-05:00"
+    }
+  ]
+}

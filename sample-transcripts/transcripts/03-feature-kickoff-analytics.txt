@@ -1,0 +1,99 @@
+# Analytics Export Feature Kickoff
+
+**Date:** August 14, 2026
+**Duration:** 42:33
+**Attendees:** Dana Reyes, Luis Morales, Nina Patel, Omar Hassan, Taylor Wright
+
+## Flow Summary
+
+The team kicked off CSV and Parquet export for enterprise dashboards. Luis outlined missing async job queue infrastructure; Omar raised Parquet schema versioning; Nina planned export progress UI work against upcoming API endpoints. Taylor and Dana filed multiple GitHub issues and PRs via Grok during the session.
+
+## Transcript
+
+**Taylor Wright** · 0:06
+
+Goal for this quarter is CSV and Parquet export for enterprise dashboards. Let's break down MVP scope.
+
+**Dana Reyes** · 0:14
+
+Luis, what's missing on the API side today?
+
+**Luis Morales** · 0:18
+
+We have synchronous export for tables under ten thousand rows. Async job queue for larger exports doesn't exist yet. That's the critical path.
+
+**Taylor Wright** · 0:29
+
+grok make an issue — "Implement async export job queue for large dataset downloads". Description: use existing Redis, job states pending/running/completed/failed, retention seven days, max file size 500MB. Milestone Q3-Enterprise.
+
+**Omar Hassan** · 0:48
+
+Data team needs schema versioning on exported Parquet files. Can we track that separately?
+
+**Dana Reyes** · 0:54
+
+Yes. grok make an issue titled "Add Parquet schema version metadata to export files". Body: embed version in file footer per Omar's doc in Confluence page "Export Schema v2", link the page URL. Label data-platform.
+
+**Nina Patel** · 1:12
+
+For UI, I'll need an export progress component and polling. I can start once the job status endpoint exists.
+
+**Luis Morales** · 1:20
+
+I'll have GET /exports/{jobId} ready by Thursday. Nina, if you want to scaffold the UI against mocks first, grok make a PR that adds ExportProgressPanel component with mocked job states, Storybook stories, and no real API wiring yet. Branch feature/export-progress-ui.
+
+**Taylor Wright** · 1:40
+
+Backend still needs the endpoint PR though.
+
+**Luis Morales** · 1:44
+
+grok make a PR implementing GET /exports/{jobId} and POST /exports/async with validation for date range and format csv or parquet. Include OpenAPI updates and integration tests in tests/export_async_test.go.
+
+**Dana Reyes** · 2:02
+
+Omar, anything blocking the Parquet work?
+
+**Omar Hassan** · 2:05
+
+Column naming for nested events. I'll write it up.
+
+**Taylor Wright** · 2:09
+
+grok make an issue — "Define nested event column flattening rules for Parquet export". Assign Omar. Acceptance criteria: table in issue body with ten example event types and resulting column names.
+
+**Nina Patel** · 2:24
+
+Once Luis merges the async endpoint, grok make a PR wiring ExportProgressPanel to the real polling endpoint, feature flag export_v2_enabled, error states for failed jobs.
+
+**Luis Morales** · 2:38
+
+Flag should default off in prod.
+
+**Dana Reyes** · 2:41
+
+Agreed. Let's also capture observability before we forget.
+
+**Taylor Wright** · 2:45
+
+grok make an issue for "Add metrics and alerts for export job failure rate". Include Prometheus counters for job_created, job_failed, job_duration_seconds, alert if failure rate exceeds five percent over fifteen minutes.
+
+**Luis Morales** · 3:02
+
+That's a lot of issues and PRs for one kickoff.
+
+**Dana Reyes** · 3:06
+
+Better now than in retro. Luis owns backend PR and async issue, Nina owns both UI PRs, Omar owns schema issues.
+
+**Taylor Wright** · 3:16
+
+I'll sync Jira after GitHub items are created. Anything else?
+
+**Nina Patel** · 3:21
+
+Nope. I'll start the mocked UI PR today.
+
+**Dana Reyes** · 3:24
+
+Good. Let's reconvene Friday for API review.

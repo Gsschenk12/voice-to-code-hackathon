@@ -1,0 +1,87 @@
+# Daily Standup — Platform Team
+
+**Date:** August 15, 2026
+**Duration:** 12:18
+**Attendees:** Robin Hayes, Avery Collins, Blake Torres, Drew Kim
+
+## Flow Summary
+
+Quick standup covered outdated pagination docs, a broken internal package publish workflow, a retry helper ready for review, a typo in onboarding error messages, and a health endpoint that incorrectly returns 200 when the database is down.
+
+## Transcript
+
+**Robin Hayes** · 0:03
+
+Quick round. Avery?
+
+**Avery Collins** · 0:05
+
+Finished the pagination fix. One thing — docs still say default page size is twenty but we changed it to fifty.
+
+**Robin Hayes** · 0:13
+
+grok make an issue — "Update API docs for default page size change to 50". Small doc fix, label documentation.
+
+**Avery Collins** · 0:22
+
+Can do follow-up myself if needed.
+
+**Blake Torres** · 0:25
+
+I'm blocked on the internal packages release. The semver bump didn't publish from CI.
+
+**Robin Hayes** · 0:32
+
+grok make an issue titled "Fix npm publish workflow for semver tags in packages/". Mention Blake's failed run link from GitHub Actions run 1847293, expected behavior is auto-publish on tag push v-star.
+
+**Blake Torres** · 0:48
+
+Thanks. Also I have the retry helper coded locally.
+
+**Robin Hayes** · 0:52
+
+Is it tested?
+
+**Blake Torres** · 0:54
+
+Unit tests pass. grok make a PR — branch fix/retry-helper-backoff — export RetryWithBackoff from packages/retry, cap at three attempts, document usage in README, add tests for jitter.
+
+**Drew Kim** · 1:08
+
+I found a typo in the onboarding endpoint error message. Super tiny.
+
+**Robin Hayes** · 1:13
+
+Perfect intern task. grok make an issue — "Fix typo in onboarding error message EN-401". Body: current message says "invaid email", should be "invalid email". Label good-first-issue, assign Drew.
+
+**Drew Kim** · 1:28
+
+If it's okay, I'd like to fix it myself for practice.
+
+**Robin Hayes** · 1:32
+
+Even better. grok make a PR from branch fix/onboarding-typo — one-line change in handlers/onboarding.go, reference the issue number in the PR description.
+
+**Avery Collins** · 1:44
+
+While Drew's at it, the health endpoint returns 200 when DB is down. That's wrong.
+
+**Robin Hayes** · 1:50
+
+That's not a standup fix. grok make an issue — "Health check should return 503 when database unreachable". Priority high. Acceptance criteria: /health returns 503 and body status degraded when ping fails.
+
+**Blake Torres** · 2:06
+
+I can pick that up after the publish workflow is unblocked.
+
+**Robin Hayes** · 2:10
+
+Blake, once your retry PR is up, grok make a PR that bumps the packages/retry version in the root lockfile after publish works — only the version bump and lockfile, separate from retry logic.
+
+**Blake Torres** · 2:24
+
+Will do.
+
+**Robin Hayes** · 2:26
+
+Drew, focus on typo issue and PR first. Everyone else — issues before EOD for docs and health check. See you tomorrow.

@@ -1,0 +1,79 @@
+# Post-Incident Review — Deploy Pipeline
+
+**Date:** August 11, 2026
+**Duration:** 24:47
+**Attendees:** Chris Dalton, Jamie Wu, Pat Ellis, Quinn Vega
+
+## Flow Summary
+
+Production deploy was stuck forty-two minutes because the canary health check still pointed at deprecated /healthz. The team identified config drift between staging and prod, assigned immediate hotfix work, and planned follow-up smoke tests and audit logging for production promotions.
+
+## Transcript
+
+**Chris Dalton** · 0:04
+
+Incident summary: production deploy stuck for forty-two minutes because the canary health check pointed at a deprecated endpoint. Root cause is config drift between staging and prod.
+
+**Jamie Wu** · 0:16
+
+We removed /healthz from the app last month but not from the pipeline config.
+
+**Pat Ellis** · 0:22
+
+My team didn't know the pipeline had its own copy of that path.
+
+**Chris Dalton** · 0:27
+
+Action items need to be in GitHub today. Jamie, grok make an issue titled "Remove deprecated /healthz from canary health check config". Body: use /ready instead, update staging and prod Terraform modules, add comment referencing incident INC-2026-0811.
+
+**Quinn Vega** · 0:46
+
+Security wants audit logging on who promotes to prod.
+
+**Chris Dalton** · 0:51
+
+grok make an issue — "Audit log all production promotion events". Requirements: actor, timestamp, commit SHA, previous and new revision, ship to existing SIEM webhook. Label security and compliance.
+
+**Jamie Wu** · 1:08
+
+I can patch the health check quickly. grok make a PR on branch fix/canary-health-ready-path — change health_check_path in modules/canary/main.tf from /healthz to /ready, run terraform fmt, update the README deploy section.
+
+**Pat Ellis** · 1:24
+
+Should we add a smoke test so this doesn't regress?
+
+**Chris Dalton** · 1:28
+
+Yes. grok make an issue for "Add CI smoke test asserting canary health path matches app readiness route". Good-first-issue label.
+
+**Jamie Wu** · 1:38
+
+After the hotfix PR merges, grok make a PR that adds the smoke test Pat described — script in scripts/verify-health-path.sh called from GitHub Actions workflow deploy-verify.yml.
+
+**Quinn Vega** · 1:52
+
+For audit logging, that's bigger than a same-day fix.
+
+**Chris Dalton** · 1:57
+
+Understood. grok make a PR draft only — scaffold audit log hook in internal/promote/audit.go with TODO markers, no SIEM wiring yet, so we can iterate in review.
+
+**Pat Ellis** · 2:12
+
+I'll review Jamie's health check PR within the hour.
+
+**Jamie Wu** · 2:16
+
+I'll stack the smoke test PR on top once CI passes on the first one.
+
+**Chris Dalton** · 2:22
+
+Recap: two issues for health path cleanup and smoke test tracking, one issue for audit logging, two PRs for immediate health fix and follow-up smoke test, plus draft audit scaffold PR.
+
+**Quinn Vega** · 2:36
+
+I'll join review on the audit draft when it's up.
+
+**Chris Dalton** · 2:40
+
+Meeting adjourned. Post the incident timeline link in each issue.
