@@ -4,6 +4,7 @@ import {
   detectKeyword,
   isGrokWakeWord,
   normalizeTranscript,
+  normalizeWithAlignment,
   rollingWindow,
 } from "@/lib/keywords";
 
@@ -13,10 +14,38 @@ describe("normalizeTranscript", () => {
   });
 });
 
+describe("normalizeWithAlignment", () => {
+  it("maps normalized characters back to original indices", () => {
+    const original = "Hey Grok make an issue now";
+    const { normalized, sourceIndex } = normalizeWithAlignment(original);
+    expect(normalized).toContain("grok make an issue");
+    expect(sourceIndex).toHaveLength(normalized.length);
+
+    const start = normalized.indexOf("grok make an issue");
+    const end = start + "grok make an issue".length;
+    const sourceStart = sourceIndex[start]!;
+    const sourceEnd = sourceIndex[end - 1]! + 1;
+    expect(original.slice(sourceStart, sourceEnd).toLowerCase()).toContain("grok");
+    expect(original.slice(sourceStart, sourceEnd).toLowerCase()).toContain("issue");
+  });
+
+  it("spans include filler words spoken inside the phrase", () => {
+    const original = "please grok uh make an issue about auth";
+    const matches = detectAllKeywords(original);
+    expect(matches).toHaveLength(1);
+    const span = original.slice(matches[0]!.sourceStart, matches[0]!.sourceEnd);
+    expect(span.toLowerCase()).toContain("grok");
+    expect(span.toLowerCase()).toContain("uh");
+    expect(span.toLowerCase()).toContain("issue");
+  });
+});
+
 describe("detectKeyword", () => {
   it("detects issue phrase", () => {
     const match = detectKeyword("hey team grok make an issue about the login bug");
     expect(match?.kind).toBe("issue");
+    expect(match?.sourceStart).toBeGreaterThanOrEqual(0);
+    expect(match?.sourceEnd).toBeGreaterThan(match!.sourceStart);
   });
 
   it("detects PR phrase", () => {
@@ -60,13 +89,20 @@ describe("detectKeyword", () => {
 });
 
 describe("detectAllKeywords", () => {
-  it("returns every match in order", () => {
-    const matches = detectAllKeywords(
-      "uh grok um make an issue please then grok make a PR for the fix",
-    );
+  it("returns every match in order with distinct source spans", () => {
+    const text =
+      "uh grok um make an issue please then grok make a PR for the fix";
+    const matches = detectAllKeywords(text);
     expect(matches.map((m) => m.kind)).toEqual(["issue", "pr"]);
     expect(matches[0]?.phrase).toBe("grok make an issue");
     expect(matches[1]?.phrase).toBe("grok make a pr");
+    expect(matches[0]!.sourceEnd).toBeLessThanOrEqual(matches[1]!.sourceStart);
+    expect(text.slice(matches[0]!.sourceStart, matches[0]!.sourceEnd).toLowerCase()).toMatch(
+      /grok[\s\S]*issue/,
+    );
+    expect(text.slice(matches[1]!.sourceStart, matches[1]!.sourceEnd).toLowerCase()).toMatch(
+      /grok[\s\S]*pr/,
+    );
   });
 
   it("does not overlap shorter PR variants", () => {
@@ -87,6 +123,24 @@ describe("detectAllKeywords", () => {
     expect(matches.map((m) => m.kind)).toEqual(["issue", "pr"]);
     expect(matches[0]?.phrase).toBe("grok make an issue");
     expect(matches[1]?.phrase).toBe("grok make a pr");
+  });
+
+  it("gives two issue mentions different spans", () => {
+    const text =
+      "First, grok make an issue about logging. Later, grok make an issue about auth.";
+    const matches = detectAllKeywords(text);
+    expect(matches).toHaveLength(2);
+    expect(matches[0]!.sourceStart).not.toBe(matches[1]!.sourceStart);
+    expect(matches[0]!.sourceEnd).toBeLessThanOrEqual(matches[1]!.sourceStart);
+  });
+
+  it("maps STT alias spans back to the spoken wake token", () => {
+    const text = "please rock make an issue about auth";
+    const matches = detectAllKeywords(text);
+    expect(matches).toHaveLength(1);
+    const span = text.slice(matches[0]!.sourceStart, matches[0]!.sourceEnd);
+    expect(span.toLowerCase()).toContain("rock");
+    expect(span.toLowerCase()).toContain("issue");
   });
 });
 

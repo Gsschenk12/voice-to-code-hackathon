@@ -1,4 +1,5 @@
-import { detectAllKeywords, rollingWindow } from "@/lib/keywords";
+import { detectAllKeywords } from "@/lib/keywords";
+import { buildFocusedTranscript } from "@/lib/pipeline/trigger-focus";
 import type { ScannedTrigger } from "@/lib/triggers/types";
 
 const TRANSCRIPT_MARKER = "## Transcript";
@@ -10,36 +11,37 @@ export function extractTranscriptBody(raw: string): string {
   return raw.slice(idx + TRANSCRIPT_MARKER.length).trim();
 }
 
-function splitUtterances(text: string): string[] {
-  return text
-    .split(/\n\s*\n/)
-    .map((block) => block.trim())
-    .filter(Boolean);
-}
-
 /**
- * Find every wake phrase in order. Each hit gets a local window: the utterance
- * that contains it plus preceding text, capped to match rollingWindow.
+ * Find every wake phrase in order. Each hit gets a focused transcript window
+ * pinned to that mention (tagged phrase + labeled earlier discussion).
  */
 export function scanTriggers(text: string, maxWindowChars = 800): ScannedTrigger[] {
   const body = extractTranscriptBody(text);
-  const utterances = splitUtterances(body);
+  const matches = detectAllKeywords(body);
   const triggers: ScannedTrigger[] = [];
 
-  for (let i = 0; i < utterances.length; i++) {
-    const matches = detectAllKeywords(utterances[i]);
-    if (matches.length === 0) continue;
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i]!;
+    const previousMatches = matches.slice(0, i).map((m) => ({
+      phrase: m.phrase,
+      sourceStart: m.sourceStart,
+      sourceEnd: m.sourceEnd,
+    }));
 
-    const throughCurrent = utterances.slice(0, i + 1).join("\n\n");
-    const transcriptWindow = rollingWindow(throughCurrent, maxWindowChars);
-
-    for (const match of matches) {
-      triggers.push({
-        kind: match.kind,
-        phrase: match.phrase,
-        transcriptWindow,
-      });
-    }
+    triggers.push({
+      kind: match.kind,
+      phrase: match.phrase,
+      transcriptWindow: buildFocusedTranscript({
+        transcript: body,
+        match: {
+          phrase: match.phrase,
+          sourceStart: match.sourceStart,
+          sourceEnd: match.sourceEnd,
+        },
+        previousMatches,
+        maxChars: maxWindowChars,
+      }),
+    });
   }
 
   return triggers;

@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { detectKeyword, rollingWindow } from "@/lib/keywords";
+import { detectAllKeywords } from "@/lib/keywords";
+import { buildFocusedTranscript } from "@/lib/pipeline/trigger-focus";
 import type { CommandKind } from "@/types/meeting";
 
-const COOLDOWN_MS = 12_000;
+/** Debounce only: avoid re-firing the same mention while ASR is still settling. */
+const COOLDOWN_MS = 1_500;
 
 type DetectedCommand = {
   kind: CommandKind;
@@ -27,36 +29,51 @@ export function useKeywordDetector({
   cooldownMs = COOLDOWN_MS,
 }: UseKeywordDetectorOptions) {
   const [lastMatch, setLastMatch] = useState<DetectedCommand | null>(null);
+  const firedCount = useRef(0);
   const lastFiredAt = useRef(0);
-  const lastPhrase = useRef<string | null>(null);
   const onDetectRef = useRef(onDetect);
   onDetectRef.current = onDetect;
 
   const reset = useCallback(() => {
+    firedCount.current = 0;
     lastFiredAt.current = 0;
-    lastPhrase.current = null;
     setLastMatch(null);
   }, []);
 
   useEffect(() => {
     if (!enabled || !transcript) return;
 
-    const windowText = rollingWindow(transcript);
-    const match = detectKeyword(windowText);
-    if (!match) return;
+    const matches = detectAllKeywords(transcript);
+    if (matches.length <= firedCount.current) return;
 
     const now = Date.now();
-    const samePhrase = lastPhrase.current === match.phrase;
-    if (samePhrase && now - lastFiredAt.current < cooldownMs) return;
-    if (!samePhrase && now - lastFiredAt.current < cooldownMs / 2) return;
+    if (now - lastFiredAt.current < cooldownMs) return;
 
+    const nextIndex = firedCount.current;
+    const match = matches[nextIndex];
+    if (!match) return;
+
+    firedCount.current = nextIndex + 1;
     lastFiredAt.current = now;
-    lastPhrase.current = match.phrase;
+
+    const previousMatches = matches.slice(0, nextIndex).map((m) => ({
+      phrase: m.phrase,
+      sourceStart: m.sourceStart,
+      sourceEnd: m.sourceEnd,
+    }));
 
     const command: DetectedCommand = {
       kind: match.kind,
       phrase: match.phrase,
-      transcriptWindow: windowText,
+      transcriptWindow: buildFocusedTranscript({
+        transcript,
+        match: {
+          phrase: match.phrase,
+          sourceStart: match.sourceStart,
+          sourceEnd: match.sourceEnd,
+        },
+        previousMatches,
+      }),
       at: now,
     };
     setLastMatch(command);

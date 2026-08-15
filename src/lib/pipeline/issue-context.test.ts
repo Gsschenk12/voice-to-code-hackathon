@@ -5,6 +5,7 @@ import {
   parseIssueContextResponse,
 } from "./issue-context";
 import type { IssueForContext } from "./issue-context";
+import { TRIGGER_FOCUS_INSTRUCTION } from "./trigger-focus";
 
 const issue: IssueForContext = {
   number: 847,
@@ -28,6 +29,7 @@ describe("buildIssueContextPrompt", () => {
     expect(prompt).toContain("Do not use tools");
     expect(prompt).toContain('"needed"');
     expect(prompt).toContain("### Meeting context");
+    expect(prompt).toContain(TRIGGER_FOCUS_INSTRUCTION);
   });
 });
 

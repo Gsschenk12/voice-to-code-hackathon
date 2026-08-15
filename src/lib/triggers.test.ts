@@ -29,6 +29,22 @@ describe("scanTriggers", () => {
     expect(triggers[0]?.transcriptWindow.length).toBeGreaterThan(0);
   });
 
+  it("builds distinct focused windows for nearby wake phrases", () => {
+    const triggers = scanTriggers(
+      [
+        "First grok make an issue about logging.",
+        "Then grok make an issue about auth race.",
+      ].join(" "),
+    );
+    expect(triggers).toHaveLength(2);
+    expect(triggers[0]!.transcriptWindow).not.toEqual(triggers[1]!.transcriptWindow);
+    expect(triggers[0]!.transcriptWindow).toMatch(/>>>[\s\S]*<<</);
+    expect(triggers[1]!.transcriptWindow).toMatch(/>>>[\s\S]*<<</);
+    expect(triggers[1]!.transcriptWindow).toContain("This request (use this):");
+    expect(triggers[1]!.transcriptWindow).toContain("auth race");
+    expect(triggers[0]!.transcriptWindow).toContain("logging");
+  });
+
   it("ignores header text before ## Transcript", () => {
     const raw = [
       "# Meeting",

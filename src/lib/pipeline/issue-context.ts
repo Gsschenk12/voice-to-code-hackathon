@@ -1,4 +1,5 @@
 import type { IssueComment, ListedIssue } from "@/lib/github";
+import { TRIGGER_FOCUS_INSTRUCTION } from "./trigger-focus";
 
 const BODY_EXCERPT_CHARS = 800;
 const COMMENT_EXCERPT_CHARS = 400;
@@ -32,8 +33,9 @@ export function buildIssueContextPrompt(params: {
     "You decide whether a meeting transcript has new context that should be added to an existing GitHub issue.",
     "",
     "Do not use tools. Do not edit files. Reply with JSON only.",
-    "Compare the transcript to the issue title, body, and comments.",
-    "Only add a comment when the transcript has new, useful facts that are not already on the issue.",
+    "Compare the current request in the transcript to the issue title, body, and comments.",
+    TRIGGER_FOCUS_INSTRUCTION,
+    "Only add a comment when this request has new, useful facts that are not already on the issue.",
     'If nothing new, return {"needed":false}.',
     'If new facts exist, return {"needed":true,"comment":"..."} where comment is markdown starting with ### Meeting context followed by the new facts only — not a dump of the whole transcript unless that is the new material.',
     "",

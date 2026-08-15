@@ -4,6 +4,7 @@
  * the issue — that happens via Octokit after this returns.
  */
 import { promptCloudAgent } from "@/lib/cursor";
+import { TRIGGER_FOCUS_INSTRUCTION } from "./trigger-focus";
 
 export const ISSUE_DRAFT_MODEL = "grok-4.6";
 export const GITHUB_ISSUE_TITLE_MAX = 256;
@@ -21,7 +22,7 @@ export type DraftIssueParams = {
   meetingId: string;
 };
 
-function buildDraftIssuePrompt(transcriptWindow: string, repoUrl: string): string {
+export function buildDraftIssuePrompt(transcriptWindow: string, repoUrl: string): string {
   const context = transcriptWindow.trim() || "(no transcript context provided)";
 
   return [
@@ -29,7 +30,8 @@ function buildDraftIssuePrompt(transcriptWindow: string, repoUrl: string): strin
     `Repository: ${repoUrl}`,
     "",
     "Explore the cloned repository as needed so the issue is grounded in real",
-    "files, APIs, and naming. Use the transcript as the spoken request.",
+    "files, APIs, and naming. Use the current request in the transcript as the spoken request.",
+    TRIGGER_FOCUS_INSTRUCTION,
     "",
     "Do NOT implement code changes.",
     "Do NOT create a GitHub issue, pull request, or run gh / git write commands.",

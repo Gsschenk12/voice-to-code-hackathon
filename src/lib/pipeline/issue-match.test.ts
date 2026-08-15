@@ -4,6 +4,7 @@ import {
   parseIssueMatchResponse,
 } from "./issue-match";
 import type { IssueCandidate } from "./issue-match";
+import { TRIGGER_FOCUS_INSTRUCTION } from "./trigger-focus";
 
 const issues: IssueCandidate[] = [
   {
@@ -35,6 +36,7 @@ describe("buildIssueMatchPrompt", () => {
     expect(prompt).toMatch(/Ignore whether the wake phrase asked to file an issue or open a pull request/i);
     expect(prompt).toContain("Do not use tools");
     expect(prompt).toContain('"matches"');
+    expect(prompt).toContain(TRIGGER_FOCUS_INSTRUCTION);
   });
 });
 
