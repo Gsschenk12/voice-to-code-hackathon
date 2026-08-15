@@ -25,6 +25,27 @@ const PHRASES: Array<{ kind: CommandKind; patterns: RegExp[] }> = [
   },
 ];
 
+function nextMatch(normalized: string, fromIndex: number): KeywordMatch | null {
+  const slice = normalized.slice(fromIndex);
+  if (!slice) return null;
+
+  let best: KeywordMatch | null = null;
+  for (const { kind, patterns } of PHRASES) {
+    for (const pattern of patterns) {
+      const match = slice.match(pattern);
+      if (match?.index == null) continue;
+      if (best && match.index >= best.index) continue;
+      best = {
+        kind,
+        phrase: match[0],
+        index: match.index,
+      };
+    }
+  }
+  if (!best) return null;
+  return { ...best, index: fromIndex + best.index };
+}
+
 /**
  * Scan a rolling transcript window for wake phrases.
  * Prefers PR matches when both could apply (more specific patterns listed first).
@@ -46,6 +67,25 @@ export function detectKeyword(transcriptWindow: string): KeywordMatch | null {
     }
   }
   return null;
+}
+
+/**
+ * Find every wake phrase left-to-right. Matches do not overlap.
+ * At the same position, PR patterns win (listed first, more specific).
+ */
+export function detectAllKeywords(transcript: string): KeywordMatch[] {
+  const normalized = normalizeTranscript(transcript);
+  if (!normalized) return [];
+
+  const matches: KeywordMatch[] = [];
+  let fromIndex = 0;
+  while (fromIndex < normalized.length) {
+    const match = nextMatch(normalized, fromIndex);
+    if (!match) break;
+    matches.push(match);
+    fromIndex = match.index + match.phrase.length;
+  }
+  return matches;
 }
 
 /** Keep the last N characters of transcript for keyword scanning. */
