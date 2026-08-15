@@ -5,7 +5,12 @@ import {
   IntegrationNotConnectedError,
 } from "@cursor/sdk";
 import type { CommandKind } from "@/types/meeting";
-import { buildAgentPrompt } from "@/lib/prompts";
+import {
+  buildAgentPrompt,
+  buildPrExecutePrompt,
+  buildPrPlanPrompt,
+  type AssociatedIssueForPrompt,
+} from "@/lib/prompts";
 
 const FALLBACK_MODEL = "composer-2.5";
 
@@ -228,6 +233,131 @@ export async function launchCloudAgent(params: LaunchAgentParams): Promise<Launc
     return {
       agentId: agent.agentId,
       runId: run.id,
+    };
+  } catch (err) {
+    wrapCursorAgentError(err);
+  }
+}
+
+export type LaunchPrPlanExecuteParams = {
+  apiKey: string;
+  githubAccessToken?: string;
+  transcriptWindow: string;
+  repoUrl: string;
+  startingRef?: string;
+  meetingId: string;
+  issue: AssociatedIssueForPrompt;
+};
+
+/**
+ * PR path: spawn a cloud agent in plan mode, return ids immediately, then in
+ * the background wait for the plan and send an agent-mode execute follow-up
+ * with autoCreatePR. Does not change launchCloudAgent / promptCloudAgent.
+ */
+export async function launchPrPlanExecuteAgent(
+  params: LaunchPrPlanExecuteParams,
+): Promise<LaunchAgentResult> {
+  const {
+    apiKey,
+    githubAccessToken,
+    transcriptWindow,
+    repoUrl,
+    startingRef = "main",
+    meetingId,
+    issue,
+  } = params;
+
+  const modelId = await resolveModelId(apiKey);
+  const planPrompt = buildPrPlanPrompt({ repoUrl, transcriptWindow, issue });
+  const executePrompt = buildPrExecutePrompt({ issue });
+
+  const envVars: Record<string, string> = {};
+  if (githubAccessToken) {
+    envVars.GITHUB_TOKEN = githubAccessToken;
+    envVars.GH_TOKEN = githubAccessToken;
+  }
+
+  try {
+    const agent = await Agent.create({
+      apiKey,
+      model: { id: modelId },
+      mode: "plan",
+      cloud: {
+        repos: [{ url: repoUrl, startingRef }],
+        autoCreatePR: true,
+        skipReviewerRequest: true,
+        ...(Object.keys(envVars).length > 0 ? { envVars } : {}),
+        metadata: {
+          meeting_id: meetingId,
+          command: "pr",
+          issue: `#${issue.number}`,
+        },
+      },
+    });
+
+    const planRun = await agent.send(planPrompt);
+    console.info("[cursor] pr plan-execute launched", {
+      agentId: agent.agentId,
+      runId: planRun.id,
+      issue: issue.number,
+      meetingId,
+    });
+
+    void (async () => {
+      try {
+        const planResult = await planRun.wait();
+        console.info("[cursor] pr plan finished", {
+          agentId: agent.agentId,
+          runId: planRun.id,
+          status: planResult.status,
+        });
+
+        if (planResult.status !== "finished") {
+          console.error("[cursor] pr plan did not finish; skipping execute", {
+            agentId: agent.agentId,
+            runId: planRun.id,
+            status: planResult.status,
+            error: planResult.error?.message,
+          });
+          return;
+        }
+
+        const executeRun = await agent.send(executePrompt, { mode: "agent" });
+        console.info("[cursor] pr execute sent", {
+          agentId: agent.agentId,
+          runId: executeRun.id,
+          issue: issue.number,
+        });
+
+        void executeRun
+          .wait()
+          .then((result) => {
+            console.info("[cursor] pr execute finished", {
+              agentId: agent.agentId,
+              runId: executeRun.id,
+              status: result.status,
+            });
+          })
+          .catch((err) => {
+            console.error("[cursor] pr execute wait failed", {
+              agentId: agent.agentId,
+              runId: executeRun.id,
+              err,
+            });
+          });
+      } catch (err) {
+        console.error("[cursor] pr plan-execute background failed", {
+          agentId: agent.agentId,
+          err,
+        });
+      } finally {
+        await agent[Symbol.asyncDispose]();
+      }
+    })();
+
+    return {
+      agentId: agent.agentId,
+      runId: planRun.id,
     };
   } catch (err) {
     wrapCursorAgentError(err);
