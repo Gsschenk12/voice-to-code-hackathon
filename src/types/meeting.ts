@@ -24,6 +24,10 @@ export type MeetingAgent = {
   branchName?: string;
   error?: string;
   createdAt: string;
+  /** True while waiting for POST /api/commands; agentId is a local pending id. */
+  pending?: boolean;
+  /** Wake phrase that triggered this launch (shown on pending rows). */
+  phrase?: string;
 };
 
 export type LaunchCommandRequest = {
