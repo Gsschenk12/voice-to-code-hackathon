@@ -2,7 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { loadSetup, saveLastMeeting, saveSetup } from "@/lib/client-persist";
 import type { CaptureSource } from "@/types/meeting";
 
 function newMeetingId() {
@@ -23,6 +24,23 @@ export function MeetingSetup() {
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const saved = loadSetup();
+    if (saved) {
+      setRepoUrl(saved.repoUrl);
+      setStartingRef(saved.startingRef || "main");
+      setCaptureSource(saved.captureSource);
+      setRepos(saved.repos);
+    }
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    saveSetup({ repoUrl, startingRef, captureSource, repos });
+  }, [ready, repoUrl, startingRef, captureSource, repos]);
 
   const saveCursorKey = useCallback(async () => {
     setSavingKey(true);
@@ -67,9 +85,17 @@ export function MeetingSetup() {
       return;
     }
     const id = newMeetingId();
+    const ref = startingRef || "main";
+    saveSetup({ repoUrl, startingRef: ref, captureSource, repos });
+    saveLastMeeting({
+      id,
+      repoUrl,
+      startingRef: ref,
+      captureSource,
+    });
     const params = new URLSearchParams({
       repo: repoUrl,
-      ref: startingRef || "main",
+      ref,
       source: captureSource,
     });
     router.push(`/meeting/${id}?${params.toString()}`);
@@ -77,6 +103,7 @@ export function MeetingSetup() {
     repoUrl,
     startingRef,
     captureSource,
+    repos,
     cursorKey,
     session?.cursorApiKey,
     router,

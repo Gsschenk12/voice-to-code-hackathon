@@ -5,6 +5,7 @@ import {
   formatMeetTranscript,
   isInterimUpdate,
   mergeCaptionSnapshot,
+  seedMeetCaptionMergeFromTranscript,
 } from "@/lib/meet-captions";
 
 describe("isInterimUpdate", () => {
@@ -120,5 +121,19 @@ describe("applyCaptionSnapshot", () => {
       [{ speaker: "", text: "anonymous line" }],
     );
     expect(transcript).toBe("anonymous line");
+  });
+});
+
+describe("seedMeetCaptionMergeFromTranscript", () => {
+  it("seeds finalized rows from a restored transcript", () => {
+    const state = seedMeetCaptionMergeFromTranscript(
+      "Alice: hello\nBob: world",
+    );
+    expect(state.finalized).toEqual([
+      { speaker: "Alice", text: "hello" },
+      { speaker: "Bob", text: "world" },
+    ]);
+    expect(state.active).toBeNull();
+    expect(formatMeetTranscript(state)).toBe("Alice: hello\nBob: world");
   });
 });

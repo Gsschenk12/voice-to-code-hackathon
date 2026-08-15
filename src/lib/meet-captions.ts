@@ -31,6 +31,32 @@ export function createMeetCaptionMergeState(): MeetCaptionMergeState {
   };
 }
 
+/**
+ * Seed merge state from a restored transcript so new Meet snapshots append
+ * instead of replacing history after a refresh.
+ */
+export function seedMeetCaptionMergeFromTranscript(
+  transcript: string,
+): MeetCaptionMergeState {
+  const state = createMeetCaptionMergeState();
+  const lines = transcript
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  for (const line of lines) {
+    const colon = line.indexOf(": ");
+    if (colon > 0 && colon < 80) {
+      state.finalized.push({
+        speaker: line.slice(0, colon).trim(),
+        text: line.slice(colon + 2).trim(),
+      });
+    } else {
+      state.finalized.push({ speaker: "", text: line });
+    }
+  }
+  return state;
+}
+
 function normalizeRow(row: CaptionRow): CaptionRow {
   return {
     speaker: (row.speaker || "").trim(),

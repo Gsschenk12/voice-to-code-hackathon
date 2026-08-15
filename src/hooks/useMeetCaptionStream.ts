@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createMeetCaptionMergeState,
   mergeCaptionSnapshot,
+  seedMeetCaptionMergeFromTranscript,
   type CaptionRow,
   type MeetCaptionMergeState,
 } from "@/lib/meet-captions";
@@ -56,6 +57,7 @@ export function useMeetCaptionStream({
   const [transcript, setTranscript] = useState("");
 
   const mergeRef = useRef<MeetCaptionMergeState>(createMeetCaptionMergeState());
+  const transcriptRef = useRef("");
   const onTranscriptRef = useRef(onTranscript);
   onTranscriptRef.current = onTranscript;
   const listeningRef = useRef(false);
@@ -64,8 +66,17 @@ export function useMeetCaptionStream({
 
   const applyRows = useCallback((rows: CaptionRow[]) => {
     const { transcript: next } = mergeCaptionSnapshot(mergeRef.current, rows);
+    transcriptRef.current = next;
     setTranscript(next);
     onTranscriptRef.current?.(next, false);
+  }, []);
+
+  const setTranscriptPersisted = useCallback((next: string) => {
+    transcriptRef.current = next;
+    setTranscript(next);
+    mergeRef.current = next.trim()
+      ? seedMeetCaptionMergeFromTranscript(next)
+      : createMeetCaptionMergeState();
   }, []);
 
   const stop = useCallback(() => {
@@ -83,8 +94,12 @@ export function useMeetCaptionStream({
     setStatus("connecting");
     gotHelloRef.current = false;
     listeningRef.current = true;
-    mergeRef.current = createMeetCaptionMergeState();
-    setTranscript("");
+
+    // Keep restored transcript; seed merge so new snapshots append.
+    const existing = transcriptRef.current.trim();
+    mergeRef.current = existing
+      ? seedMeetCaptionMergeFromTranscript(existing)
+      : createMeetCaptionMergeState();
 
     postToExtension("hello");
     postToExtension("start");
@@ -162,7 +177,7 @@ export function useMeetCaptionStream({
     status,
     error,
     transcript,
-    setTranscript,
+    setTranscript: setTranscriptPersisted,
     start,
     stop,
   };

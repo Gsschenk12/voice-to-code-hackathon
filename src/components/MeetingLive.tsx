@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
-import { useKeywordDetector } from "@/hooks/useKeywordDetector";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  keywordMatchCount,
+  useKeywordDetector,
+} from "@/hooks/useKeywordDetector";
 import { useMeetCaptionStream } from "@/hooks/useMeetCaptionStream";
 import { useWisprStream } from "@/hooks/useWisprStream";
 import { AgentStatus } from "@/components/AgentStatus";
 import { TranscriptPane } from "@/components/TranscriptPane";
+import {
+  loadMeeting,
+  saveLastMeeting,
+  saveMeeting,
+} from "@/lib/client-persist";
 import type {
   CaptureSource,
   CommandKind,
@@ -29,6 +37,8 @@ function commandErrorMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
+const TRANSCRIPT_PERSIST_MS = 300;
+
 export function MeetingLive({
   meetingId,
   repoUrl,
@@ -40,11 +50,81 @@ export function MeetingLive({
   const [launching, setLaunching] = useState(false);
   const [launchKind, setLaunchKind] = useState<CommandKind | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const [seedFiredCount, setSeedFiredCount] = useState(0);
 
   const wispr = useWisprStream();
   const meet = useMeetCaptionStream();
   const capture = captureSource === "meet" ? meet : wispr;
-  const { status, error, transcript, start, stop } = capture;
+  const { status, error, transcript, setTranscript, start, stop } = capture;
+
+  const agentsRef = useRef(agents);
+  const commandLogRef = useRef(commandLog);
+  const transcriptRef = useRef(transcript);
+  agentsRef.current = agents;
+  commandLogRef.current = commandLog;
+  transcriptRef.current = transcript;
+
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushPersist = useCallback(() => {
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
+    }
+    saveMeeting(meetingId, {
+      transcript: transcriptRef.current,
+      agents: agentsRef.current,
+      commandLog: commandLogRef.current,
+    });
+  }, [meetingId]);
+
+  const schedulePersist = useCallback(() => {
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      persistTimerRef.current = null;
+      saveMeeting(meetingId, {
+        transcript: transcriptRef.current,
+        agents: agentsRef.current,
+        commandLog: commandLogRef.current,
+      });
+    }, TRANSCRIPT_PERSIST_MS);
+  }, [meetingId]);
+
+  useEffect(() => {
+    const saved = loadMeeting(meetingId);
+    if (saved) {
+      setAgents(saved.agents);
+      setCommandLog(saved.commandLog);
+      setTranscript(saved.transcript);
+      setSeedFiredCount(keywordMatchCount(saved.transcript));
+    }
+    saveLastMeeting({
+      id: meetingId,
+      repoUrl,
+      startingRef,
+      captureSource,
+    });
+    setHydrated(true);
+  }, [meetingId, repoUrl, startingRef, captureSource, setTranscript]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    schedulePersist();
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, [hydrated, transcript, agents, commandLog, schedulePersist]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const onHide = () => flushPersist();
+    window.addEventListener("pagehide", onHide);
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      flushPersist();
+    };
+  }, [hydrated, flushPersist]);
 
   const launchCommand = useCallback(
     async (kind: CommandKind, transcriptWindow: string, phrase: string) => {
@@ -116,7 +196,8 @@ export function MeetingLive({
 
   useKeywordDetector({
     transcript,
-    enabled: status === "listening" && !launching,
+    enabled: hydrated && status === "listening" && !launching,
+    initialFiredCount: seedFiredCount,
     onDetect: (cmd) => {
       void launchCommand(cmd.kind, cmd.transcriptWindow, cmd.phrase);
     },
