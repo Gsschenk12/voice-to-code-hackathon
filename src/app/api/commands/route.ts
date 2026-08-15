@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     if (!result.agent && !createdIssue) {
       const last = result.log.at(-1);
-      const setupHalt = last?.stage === "matchIssues";
+      const setupHalt = last?.stage === "matchIssues" || last?.stage === "addIssueContext";
       return NextResponse.json(
         {
           error:
