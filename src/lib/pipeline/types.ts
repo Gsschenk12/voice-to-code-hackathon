@@ -38,6 +38,11 @@ export type IssueContextUpdate = {
   commentUrl?: string;
 };
 
+/** Whether a PR should be opened for this trigger (yes/no from wake phrase). */
+export type PrDecision = {
+  needed: boolean;
+};
+
 export type PipelineAgentResult = {
   agentId: string;
   runId: string;
@@ -61,6 +66,7 @@ export type PipelineContext = {
   matchedIssues?: MatchedIssue[];
   issueDecision?: IssueDecision;
   issueContextUpdate?: IssueContextUpdate;
+  prDecision?: PrDecision;
   agent?: PipelineAgentResult;
   log: PipelineLogEntry[];
 };

@@ -45,6 +45,7 @@ describe("runAddIssueContext", () => {
       "matchIssues",
       "addIssueContext",
       "resolveIssue",
+      "decidePrNeeded",
       "execute",
     ]);
   });

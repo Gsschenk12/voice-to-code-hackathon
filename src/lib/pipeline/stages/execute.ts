@@ -7,6 +7,7 @@
  *
  * Skip when an issue was already created in resolveIssue (avoid duplicate
  * gh issue create via a second agent). Otherwise launch the Cursor cloud agent.
+ * Later: honor ctx.prDecision instead of launching from kind alone.
  */
 import { launchCloudAgent } from "@/lib/cursor";
 import type { PipelineStage, StageResult } from "../types";

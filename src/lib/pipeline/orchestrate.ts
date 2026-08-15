@@ -1,6 +1,7 @@
 import { runStages } from "./run";
 import { executeStage } from "./stages/execute";
 import { addIssueContextStage } from "./stages/add-issue-context";
+import { decidePrNeededStage } from "./stages/decide-pr-needed";
 import { matchIssuesStage } from "./stages/match-issues";
 import { resolveIntentStage } from "./stages/resolve-intent";
 import { resolveIssueStage } from "./stages/resolve-issue";
@@ -12,6 +13,7 @@ export const defaultStages = [
   matchIssuesStage,
   addIssueContextStage,
   resolveIssueStage,
+  decidePrNeededStage,
   executeStage,
 ] as const;
 
@@ -23,7 +25,13 @@ export const defaultStages = [
 export async function runPipeline(
   input: Omit<
     PipelineContext,
-    "log" | "intent" | "matchedIssues" | "issueDecision" | "issueContextUpdate" | "agent"
+    | "log"
+    | "intent"
+    | "matchedIssues"
+    | "issueDecision"
+    | "issueContextUpdate"
+    | "prDecision"
+    | "agent"
   >,
 ): Promise<PipelineContext> {
   const initial: PipelineContext = {
