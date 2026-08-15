@@ -21,6 +21,7 @@ export type MeetingAgent = {
 export type LaunchCommandRequest = {
   meetingId: string;
   kind: CommandKind;
+  phrase?: string;
   transcriptWindow: string;
   repoUrl: string;
   startingRef?: string;

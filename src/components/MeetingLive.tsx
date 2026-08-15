@@ -31,6 +31,7 @@ export function MeetingLive({ meetingId, repoUrl, startingRef }: MeetingLiveProp
           body: JSON.stringify({
             meetingId,
             kind,
+            phrase,
             transcriptWindow,
             repoUrl,
             startingRef,
