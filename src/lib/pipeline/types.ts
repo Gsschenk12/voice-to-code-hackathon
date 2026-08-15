@@ -31,6 +31,13 @@ export type IssueDecision = {
   issueUrl?: string;
 };
 
+/** Whether extra meeting context was added to a matched issue. */
+export type IssueContextUpdate = {
+  issueNumber: number;
+  needed: boolean;
+  commentUrl?: string;
+};
+
 export type PipelineAgentResult = {
   agentId: string;
   runId: string;
@@ -53,6 +60,7 @@ export type PipelineContext = {
   intent?: PipelineIntent;
   matchedIssues?: MatchedIssue[];
   issueDecision?: IssueDecision;
+  issueContextUpdate?: IssueContextUpdate;
   agent?: PipelineAgentResult;
   log: PipelineLogEntry[];
 };

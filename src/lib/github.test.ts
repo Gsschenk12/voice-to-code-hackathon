@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { listOpenIssues, parseGithubRepoUrl } from "@/lib/github";
+import {
+  createIssueComment,
+  getIssue,
+  listIssueComments,
+  listOpenIssues,
+  parseGithubRepoUrl,
+} from "@/lib/github";
 import type { Octokit } from "octokit";
 
 describe("parseGithubRepoUrl", () => {
@@ -66,6 +72,75 @@ describe("listOpenIssues", () => {
       title: "Logging",
       url: "https://github.com/acme/platform/issues/1",
       body: "need structured logs",
+    });
+  });
+});
+
+describe("getIssue", () => {
+  it("maps number, title, url, and body", async () => {
+    const octokit = {
+      rest: {
+        issues: {
+          get: async () => ({
+            data: {
+              number: 847,
+              title: "Fix concurrent refresh token race",
+              html_url: "https://github.com/acme/platform/issues/847",
+              body: "Mutex around the token store write.",
+            },
+          }),
+        },
+      },
+    } as unknown as Octokit;
+
+    await expect(getIssue(octokit, "acme", "platform", 847)).resolves.toEqual({
+      number: 847,
+      title: "Fix concurrent refresh token race",
+      url: "https://github.com/acme/platform/issues/847",
+      body: "Mutex around the token store write.",
+    });
+  });
+});
+
+describe("listIssueComments", () => {
+  it("returns comment ids and bodies across pages", async () => {
+    const pages = [
+      { data: [{ id: 1, body: "first" }] },
+      { data: [{ id: 2, body: null }] },
+    ];
+    const octokit = {
+      rest: { issues: { listComments: {} } },
+      paginate: {
+        iterator: async function* () {
+          yield* pages;
+        },
+      },
+    } as unknown as Octokit;
+
+    const comments = await listIssueComments(octokit, "acme", "platform", 847);
+    expect(comments).toEqual([
+      { id: 1, body: "first" },
+      { id: 2, body: "" },
+    ]);
+  });
+});
+
+describe("createIssueComment", () => {
+  it("returns the comment html url", async () => {
+    const octokit = {
+      rest: {
+        issues: {
+          createComment: async () => ({
+            data: { html_url: "https://github.com/acme/platform/issues/847#issuecomment-9" },
+          }),
+        },
+      },
+    } as unknown as Octokit;
+
+    await expect(
+      createIssueComment(octokit, "acme", "platform", 847, "### Meeting context\n\nNew fact."),
+    ).resolves.toEqual({
+      url: "https://github.com/acme/platform/issues/847#issuecomment-9",
     });
   });
 });

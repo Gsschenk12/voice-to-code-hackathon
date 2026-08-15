@@ -99,3 +99,71 @@ export async function createGithubIssue(
     htmlUrl: data.html_url,
   };
 }
+
+export type IssueComment = {
+  id: number;
+  body: string;
+};
+
+/** Single issue (same shape as list items). */
+export async function getIssue(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number,
+): Promise<ListedIssue> {
+  const { data } = await octokit.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  return {
+    number: data.number,
+    title: data.title,
+    url: data.html_url,
+    body: data.body ?? null,
+  };
+}
+
+/** All comments on an issue, paginated. */
+export async function listIssueComments(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number,
+): Promise<IssueComment[]> {
+  const comments: IssueComment[] = [];
+  const iterator = octokit.paginate.iterator(octokit.rest.issues.listComments, {
+    owner,
+    repo,
+    issue_number: issueNumber,
+    per_page: 100,
+  });
+
+  for await (const response of iterator) {
+    for (const comment of response.data as Array<{ id: number; body?: string | null }>) {
+      comments.push({
+        id: comment.id,
+        body: comment.body ?? "",
+      });
+    }
+  }
+
+  return comments;
+}
+
+export async function createIssueComment(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  body: string,
+): Promise<{ url: string }> {
+  const { data } = await octokit.rest.issues.createComment({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    body,
+  });
+  return { url: data.html_url };
+}
