@@ -20,7 +20,7 @@ export const defaultStages = [
 /**
  * Run the full command pipeline after a keyword detection POST
  * (or a trigger-scanner handoff via CommandPipelineInitiator).
- * Stages may skip or halt; execute currently launches a Cursor cloud agent.
+ * Stages may skip or halt; execute launches a plan-then-execute Cursor cloud agent when a PR is needed.
  */
 export async function runPipeline(
   input: Omit<
