@@ -72,6 +72,18 @@ describe("parsePersistedSetup", () => {
     });
   });
 
+  it("coerces a legacy wispr source to meet", () => {
+    expect(
+      parsePersistedSetup({
+        v: PERSIST_VERSION,
+        repoUrl: "https://github.com/org/repo",
+        startingRef: "main",
+        captureSource: "wispr",
+        repos: [],
+      })?.captureSource,
+    ).toBe("meet");
+  });
+
   it("rejects wrong version or bad shape", () => {
     expect(parsePersistedSetup(null)).toBeNull();
     expect(parsePersistedSetup({ v: 99, repoUrl: "" })).toBeNull();
@@ -127,11 +139,11 @@ describe("setup / meeting / last-meeting loaders", () => {
     saveSetup({
       repoUrl: "https://github.com/a/b",
       startingRef: "dev",
-      captureSource: "wispr",
+      captureSource: "meet",
       repos: [{ url: "https://github.com/a/b" }],
     });
     expect(loadSetup()?.repoUrl).toBe("https://github.com/a/b");
-    expect(loadSetup()?.captureSource).toBe("wispr");
+    expect(loadSetup()?.captureSource).toBe("meet");
   });
 
   it("saves and loads meeting by id", () => {

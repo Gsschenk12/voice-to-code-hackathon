@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Voice to Code",
-  description: "Meeting transcripts → Cursor cloud agents via Wispr Flow wake phrases",
+  description: "Meeting transcripts → Cursor cloud agents via wake phrases",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

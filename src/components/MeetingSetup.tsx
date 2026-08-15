@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { loadSetup, saveLastMeeting, saveSetup } from "@/lib/client-persist";
-import type { CaptureSource } from "@/types/meeting";
 
 function newMeetingId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -20,7 +19,6 @@ export function MeetingSetup() {
   const [repos, setRepos] = useState<Array<{ url: string }>>([]);
   const [repoUrl, setRepoUrl] = useState("");
   const [startingRef, setStartingRef] = useState("main");
-  const [captureSource, setCaptureSource] = useState<CaptureSource>("meet");
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +29,6 @@ export function MeetingSetup() {
     if (saved) {
       setRepoUrl(saved.repoUrl);
       setStartingRef(saved.startingRef || "main");
-      setCaptureSource(saved.captureSource);
       setRepos(saved.repos);
     }
     setReady(true);
@@ -39,8 +36,8 @@ export function MeetingSetup() {
 
   useEffect(() => {
     if (!ready) return;
-    saveSetup({ repoUrl, startingRef, captureSource, repos });
-  }, [ready, repoUrl, startingRef, captureSource, repos]);
+    saveSetup({ repoUrl, startingRef, captureSource: "meet", repos });
+  }, [ready, repoUrl, startingRef, repos]);
 
   const saveCursorKey = useCallback(async () => {
     setSavingKey(true);
@@ -86,28 +83,20 @@ export function MeetingSetup() {
     }
     const id = newMeetingId();
     const ref = startingRef || "main";
-    saveSetup({ repoUrl, startingRef: ref, captureSource, repos });
+    saveSetup({ repoUrl, startingRef: ref, captureSource: "meet", repos });
     saveLastMeeting({
       id,
       repoUrl,
       startingRef: ref,
-      captureSource,
+      captureSource: "meet",
     });
     const params = new URLSearchParams({
       repo: repoUrl,
       ref,
-      source: captureSource,
+      source: "meet",
     });
     router.push(`/meeting/${id}?${params.toString()}`);
-  }, [
-    repoUrl,
-    startingRef,
-    captureSource,
-    repos,
-    cursorKey,
-    session?.cursorApiKey,
-    router,
-  ]);
+  }, [repoUrl, startingRef, repos, cursorKey, session?.cursorApiKey, router]);
 
   if (status === "loading") {
     return <p className="text-sm text-zinc-500">Loading session…</p>;
@@ -204,44 +193,13 @@ export function MeetingSetup() {
         </label>
       </div>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">Transcript source</legend>
-        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-          <input
-            type="radio"
-            name="captureSource"
-            value="meet"
-            checked={captureSource === "meet"}
-            onChange={() => setCaptureSource("meet")}
-            className="mt-1"
-          />
-          <span>
-            <span className="font-medium">Google Meet captions (free)</span>
-            <span className="mt-0.5 block text-xs text-zinc-500">
-              Reads live captions from a Meet tab via the unpacked Chrome
-              extension in <code className="font-mono">extension/</code>. No
-              ASR key needed.
-            </span>
-          </span>
-        </label>
-        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-          <input
-            type="radio"
-            name="captureSource"
-            value="wispr"
-            checked={captureSource === "wispr"}
-            onChange={() => setCaptureSource("wispr")}
-            className="mt-1"
-          />
-          <span>
-            <span className="font-medium">Wispr Flow (mic)</span>
-            <span className="mt-0.5 block text-xs text-zinc-500">
-              Streams your microphone through Wispr. Requires{" "}
-              <code className="font-mono">WISPR_API_KEY</code>.
-            </span>
-          </span>
-        </label>
-      </fieldset>
+      <div className="rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+        <p className="font-medium">Google Meet captions</p>
+        <p className="mt-0.5 text-xs text-zinc-500">
+          Reads live captions from a Meet tab via the unpacked Chrome extension
+          in <code className="font-mono">extension/</code>. No ASR key needed.
+        </p>
+      </div>
 
       <button
         type="button"

@@ -1,7 +1,7 @@
 export type CommandKind = "issue" | "pr";
 
 /** Live capture source for the meeting page. */
-export type CaptureSource = "wispr" | "meet";
+export type CaptureSource = "meet";
 
 export type KeywordMatch = {
   kind: CommandKind;

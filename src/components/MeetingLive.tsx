@@ -7,7 +7,6 @@ import {
   useKeywordDetector,
 } from "@/hooks/useKeywordDetector";
 import { useMeetCaptionStream } from "@/hooks/useMeetCaptionStream";
-import { useWisprStream } from "@/hooks/useWisprStream";
 import { AgentStatus } from "@/components/AgentStatus";
 import { TranscriptPane } from "@/components/TranscriptPane";
 import {
@@ -16,7 +15,6 @@ import {
   saveMeeting,
 } from "@/lib/client-persist";
 import type {
-  CaptureSource,
   CommandKind,
   LaunchCommandResponse,
   MeetingAgent,
@@ -26,7 +24,6 @@ type MeetingLiveProps = {
   meetingId: string;
   repoUrl: string;
   startingRef: string;
-  captureSource?: CaptureSource;
 };
 
 function commandErrorMessage(data: unknown, fallback: string): string {
@@ -50,7 +47,6 @@ export function MeetingLive({
   meetingId,
   repoUrl,
   startingRef,
-  captureSource = "meet",
 }: MeetingLiveProps) {
   const [agents, setAgents] = useState<MeetingAgent[]>([]);
   const [commandLog, setCommandLog] = useState<string[]>([]);
@@ -59,10 +55,8 @@ export function MeetingLive({
   const [hydrated, setHydrated] = useState(false);
   const [seedFiredCount, setSeedFiredCount] = useState(0);
 
-  const wispr = useWisprStream();
-  const meet = useMeetCaptionStream();
-  const capture = captureSource === "meet" ? meet : wispr;
-  const { status, error, transcript, setTranscript, start, stop } = capture;
+  const { status, error, transcript, setTranscript, start, stop } =
+    useMeetCaptionStream();
 
   const agentsRef = useRef(agents);
   const commandLogRef = useRef(commandLog);
@@ -109,10 +103,10 @@ export function MeetingLive({
       id: meetingId,
       repoUrl,
       startingRef,
-      captureSource,
+      captureSource: "meet",
     });
     setHydrated(true);
-  }, [meetingId, repoUrl, startingRef, captureSource, setTranscript]);
+  }, [meetingId, repoUrl, startingRef, setTranscript]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -261,9 +255,6 @@ export function MeetingLive({
     }
   }, []);
 
-  const sourceLabel =
-    captureSource === "meet" ? "Google Meet captions" : "Wispr Flow";
-
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -273,7 +264,7 @@ export function MeetingLive({
             {repoUrl} <span className="text-zinc-400">@{startingRef}</span>
           </p>
           <p className="font-mono text-xs text-zinc-400">{meetingId}</p>
-          <p className="mt-1 text-xs text-zinc-500">Source: {sourceLabel}</p>
+          <p className="mt-1 text-xs text-zinc-500">Source: Google Meet captions</p>
         </div>
         <div className="flex gap-2">
           {status === "listening" || status === "connecting" ? (
@@ -316,7 +307,6 @@ export function MeetingLive({
         transcript={transcript}
         status={status}
         error={error}
-        captureSource={captureSource}
       />
 
       <AgentStatus agents={agents} onRefresh={(id) => void refreshAgent(id)} />

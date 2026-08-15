@@ -1,22 +1,16 @@
 "use client";
 
-import type { CaptureSource } from "@/types/meeting";
-
 export function TranscriptPane({
   transcript,
   status,
   error,
-  captureSource = "meet",
 }: {
   transcript: string;
   status: string;
   error?: string | null;
-  captureSource?: CaptureSource;
 }) {
   const emptyHint =
-    captureSource === "meet"
-      ? "Turn on Meet captions (CC), then say “grok make an issue” or “grok make a PR”."
-      : "Speak to start the transcript… Try “grok make an issue” or “grok make a PR”.";
+    "Turn on Meet captions (CC), then say “grok make an issue” or “grok make a PR”.";
 
   return (
     <section className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">

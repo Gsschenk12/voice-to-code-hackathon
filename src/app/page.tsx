@@ -19,7 +19,7 @@ export default async function HomePage() {
           <span className="font-medium text-zinc-900 dark:text-zinc-100">
             Google Meet captions
           </span>{" "}
-          (free Chrome extension) or Wispr Flow. Say{" "}
+          (free Chrome extension). Say{" "}
           <span className="font-medium text-zinc-900 dark:text-zinc-100">
             “grok make an issue”
           </span>{" "}
@@ -82,8 +82,8 @@ export default async function HomePage() {
         <li>Auth with GitHub (repo scope for issue creation via cloud agents).</li>
         <li>Enter your Cursor API key and select a Cursor-connected repository.</li>
         <li>
-          Choose Meet captions (free extension) or Wispr mic, start listening, then
-          say the wake phrase during the meeting.
+          Start listening with the Meet captions extension, then say the wake
+          phrase during the meeting.
         </li>
       </ol>
     </main>

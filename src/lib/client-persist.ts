@@ -64,8 +64,9 @@ export function writeJson(key: string, value: unknown): void {
   }
 }
 
-function isCaptureSource(value: unknown): value is CaptureSource {
-  return value === "wispr" || value === "meet";
+function parseCaptureSource(value: unknown): CaptureSource | null {
+  if (value === "meet" || value === "wispr") return "meet";
+  return null;
 }
 
 function isRepoList(value: unknown): value is Array<{ url: string }> {
@@ -100,13 +101,14 @@ export function parsePersistedSetup(raw: unknown): PersistedSetup | null {
   if (o.v !== PERSIST_VERSION) return null;
   if (typeof o.repoUrl !== "string") return null;
   if (typeof o.startingRef !== "string") return null;
-  if (!isCaptureSource(o.captureSource)) return null;
+  const captureSource = parseCaptureSource(o.captureSource);
+  if (!captureSource) return null;
   if (!isRepoList(o.repos)) return null;
   return {
     v: PERSIST_VERSION,
     repoUrl: o.repoUrl,
     startingRef: o.startingRef,
-    captureSource: o.captureSource,
+    captureSource,
     repos: o.repos.map((r) => ({ url: r.url })),
   };
 }
@@ -140,13 +142,14 @@ export function parsePersistedLastMeeting(
   if (typeof o.id !== "string" || !o.id) return null;
   if (typeof o.repoUrl !== "string" || !o.repoUrl) return null;
   if (typeof o.startingRef !== "string") return null;
-  if (!isCaptureSource(o.captureSource)) return null;
+  const captureSource = parseCaptureSource(o.captureSource);
+  if (!captureSource) return null;
   return {
     v: PERSIST_VERSION,
     id: o.id,
     repoUrl: o.repoUrl,
     startingRef: o.startingRef,
-    captureSource: o.captureSource,
+    captureSource,
   };
 }
 

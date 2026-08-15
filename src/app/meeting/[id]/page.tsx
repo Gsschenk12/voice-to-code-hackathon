@@ -2,16 +2,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { MeetingLive } from "@/components/MeetingLive";
-import type { CaptureSource } from "@/types/meeting";
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ repo?: string; ref?: string; source?: string }>;
+  searchParams: Promise<{ repo?: string; ref?: string }>;
 };
-
-function parseCaptureSource(value: string | undefined): CaptureSource {
-  return value === "wispr" ? "wispr" : "meet";
-}
 
 export default async function MeetingLivePage({ params, searchParams }: PageProps) {
   const session = await auth();
@@ -23,7 +18,6 @@ export default async function MeetingLivePage({ params, searchParams }: PageProp
   const query = await searchParams;
   const repoUrl = query.repo;
   const startingRef = query.ref || "main";
-  const captureSource = parseCaptureSource(query.source);
 
   if (!repoUrl) {
     redirect("/meeting");
@@ -38,7 +32,6 @@ export default async function MeetingLivePage({ params, searchParams }: PageProp
         meetingId={id}
         repoUrl={repoUrl}
         startingRef={startingRef}
-        captureSource={captureSource}
       />
     </main>
   );
