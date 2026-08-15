@@ -43,7 +43,7 @@ export function MeetingLive({
   meetingId,
   repoUrl,
   startingRef,
-  captureSource = "wispr",
+  captureSource = "meet",
 }: MeetingLiveProps) {
   const [agents, setAgents] = useState<MeetingAgent[]>([]);
   const [commandLog, setCommandLog] = useState<string[]>([]);

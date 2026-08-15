@@ -10,7 +10,7 @@ type PageProps = {
 };
 
 function parseCaptureSource(value: string | undefined): CaptureSource {
-  return value === "meet" ? "meet" : "wispr";
+  return value === "wispr" ? "wispr" : "meet";
 }
 
 export default async function MeetingLivePage({ params, searchParams }: PageProps) {

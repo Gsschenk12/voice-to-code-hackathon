@@ -6,7 +6,7 @@ export function TranscriptPane({
   transcript,
   status,
   error,
-  captureSource = "wispr",
+  captureSource = "meet",
 }: {
   transcript: string;
   status: string;
