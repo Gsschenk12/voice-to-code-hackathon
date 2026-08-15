@@ -64,3 +64,38 @@ export async function listOpenIssues(
 
   return issues;
 }
+
+export type CreateGithubIssueParams = {
+  token: string;
+  repoUrl: string;
+  title: string;
+  body: string;
+};
+
+export type CreatedGithubIssue = {
+  number: number;
+  htmlUrl: string;
+};
+
+/** Create a GitHub issue via the REST API using the user's OAuth token. */
+export async function createGithubIssue(
+  params: CreateGithubIssueParams,
+): Promise<CreatedGithubIssue> {
+  const parsed = parseGithubRepoUrl(params.repoUrl);
+  if (!parsed) {
+    throw new Error(`Unparsable GitHub repo URL: ${params.repoUrl}`);
+  }
+
+  const octokit = createOctokit(params.token);
+  const { data } = await octokit.rest.issues.create({
+    owner: parsed.owner,
+    repo: parsed.repo,
+    title: params.title,
+    body: params.body,
+  });
+
+  return {
+    number: data.number,
+    htmlUrl: data.html_url,
+  };
+}

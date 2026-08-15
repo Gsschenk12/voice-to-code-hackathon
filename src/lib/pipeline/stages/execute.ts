@@ -5,9 +5,8 @@
  *         apiKey, githubAccessToken, meetingId, kind
  * Writes: agent
  *
- * Now: launch the existing Cursor cloud agent (issue or PR via kind).
- * Later: use intent + issueDecision to decide issue-only vs PR work,
- *        and pass matched issue numbers into the agent prompt.
+ * Skip when an issue was already created in resolveIssue (avoid duplicate
+ * gh issue create via a second agent). Otherwise launch the Cursor cloud agent.
  */
 import { launchCloudAgent } from "@/lib/cursor";
 import type { PipelineStage, StageResult } from "../types";
@@ -17,6 +16,15 @@ export const executeStage: PipelineStage = {
   description: "Launch Cursor cloud agent for issue and/or PR work",
   async run(ctx): Promise<StageResult> {
     const kind = ctx.intent?.kind ?? ctx.kind;
+
+    if (kind === "issue" && ctx.issueDecision?.action === "create") {
+      return {
+        status: "skip",
+        context: ctx,
+        reason: `issue #${ctx.issueDecision.issueNumber ?? "?"} already created; skipping agent`,
+      };
+    }
+
     const result = await launchCloudAgent({
       apiKey: ctx.apiKey,
       githubAccessToken: ctx.githubAccessToken,
